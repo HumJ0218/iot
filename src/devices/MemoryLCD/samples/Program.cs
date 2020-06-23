@@ -61,8 +61,8 @@ namespace MemoryLcd.Samples
             byte[] lineNumberBuffer = Enumerable.Range(0, mlcd.PixelHeight).Select(m => (byte)m).ToArray();
             byte[] frameBuffer = new byte[mlcd.BytesPerLine * mlcd.PixelHeight];
 
-            // LS027B7DH01 needs split bytes into 4 spans on RaspberryPi
-            int frameSplit = mlcd is LS027B7DH01 ? 4 : 1;
+            // LS027B7DH01 needs split bytes into 3 spans on RaspberryPi (buffer length is 4096 bytes)
+            int frameSplit = mlcd is LS027B7DH01 ? 3 : 1;
             int linesToSend = mlcd.PixelHeight / frameSplit;
             int bytesToSend = frameBuffer.Length / frameSplit;
 
