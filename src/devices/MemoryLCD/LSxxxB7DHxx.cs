@@ -16,6 +16,14 @@ namespace Iot.Device.MemoryLcd
     /// </summary>
     public abstract class LSxxxB7DHxx : IDisposable
     {
+        #region  Delay constants for LCD timing
+
+        private const int s_powerup_disp_delay = 30; // (>30us)
+        private const int s_powerup_extcomin_delay = 30; // (>30us)
+        private const int s_ts_scs = 6; // >6us
+        private const int s_th_scs = 2; // >2us
+        #endregion
+
         #region Screen specification
 
         /// <summary>
@@ -52,19 +60,11 @@ namespace Iot.Device.MemoryLcd
         private readonly int _extcomin;
         #endregion
 
-        #region  Delay constants for LCD timing
-
-        private static readonly int s_powerup_disp_delay = 1; // (>30us)
-        private static readonly int s_powerup_extcomin_delay = 1; // (>30us)
-        // private static readonly int s_scs_high_delay = 0; // (>3us)
-        // private static readonly int s_scs_low_delay = 0; // (>1us)
-        // private static readonly int s_interframe_delay = 0; // (>1us)
-        private static readonly int s_ts_scs = 0; // >6us
-        private static readonly int s_th_scs = 0; // >2us
-        #endregion
-
         private GpioController _gpio;
+        private bool _shouldDispose;
+
         private SpiDevice _spi;
+
         private byte[] _lineNumberBuffer;
         private byte[] _frameBuffer;
 
@@ -76,10 +76,24 @@ namespace Iot.Device.MemoryLcd
         /// <param name="scs">Chip select signal</param>
         /// <param name="disp">Display ON/OFF signal</param>
         /// <param name="extcomin">External COM inversion signal input</param>
-        internal LSxxxB7DHxx(SpiDevice spi, GpioController gpio, int scs, int disp, int extcomin)
+        internal LSxxxB7DHxx(SpiDevice spi, GpioController gpio = null, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical, bool shouldDispose = true, int scs = -1, int disp = -1, int extcomin = -1)
         {
             _spi = spi ?? throw new ArgumentNullException(nameof(spi));
-            _gpio = gpio;
+            if (_spi.cs != 1)
+            {
+                throw new confilitException();
+            }
+
+            if (scs != -1 || disp != -1 || extcomin != -1)
+            {
+                _shouldDispose = gpioController == null || shouldDispose;
+                _gpio = gpio ?? new GpioController(pinNumberingScheme);
+            }
+            else
+            {
+                _shouldDispose = false;
+                _gpio = null;
+            }
             _scs = scs;
             _disp = disp;
             _extcomin = extcomin;
@@ -87,7 +101,7 @@ namespace Iot.Device.MemoryLcd
             BytesPerLine = (PixelWidth + 7) / 8;
 
             _lineNumberBuffer = Enumerable.Range(0, PixelHeight).Select(m => (byte)m).ToArray();
-            _frameBuffer = new byte[BytesPerLine * PixelHeight];
+            _frameBuffer = stackalloc byte[BytesPerLine * PixelHeight];
 
             Init();
         }
@@ -103,7 +117,7 @@ namespace Iot.Device.MemoryLcd
             }
 
             // m(1), ag(1), d(18), dummy(2)
-            byte[] buffer = new byte[BytesPerLine + 4];
+            Span<byte> buffer = stackalloc byte[BytesPerLine + 4];
 
             buffer[0] = (byte)(ModeSelectionPeriodByte.Mode | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
             buffer[1] = Utility.GetAgByte(lineIndex);
@@ -125,7 +139,7 @@ namespace Iot.Device.MemoryLcd
             }
 
             // m(1), ag1(1), d1(18), dummy2(1), ag2(1), d2(18), ... , dummyn(1), agn(1), dn(18), dummy(2)
-            byte[] buffer = new byte[2 + (2 + BytesPerLine) * lineIndex.Length];
+            Span<byte> buffer = stackalloc byte[2 + (2 + BytesPerLine) * lineIndex.Length];
 
             buffer[0] = (byte)(ModeSelectionPeriodByte.Mode | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
 
@@ -151,7 +165,7 @@ namespace Iot.Device.MemoryLcd
         public void Display(bool frameInversion = false)
         {
             // m(1), dummy(1)
-            byte[] buffer = new byte[2];
+            Span<byte> buffer = stackalloc byte[2];
 
             buffer[0] = (byte)(frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy);
 
@@ -164,7 +178,7 @@ namespace Iot.Device.MemoryLcd
         public void AllClear(bool frameInversion = false)
         {
             // m(1), dummy(1)
-            byte[] buffer = new byte[2];
+            Span<byte> buffer = stackalloc byte[2];
 
             buffer[0] = (byte)(ModeSelectionPeriodByte.AllClear | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
 
@@ -206,14 +220,14 @@ namespace Iot.Device.MemoryLcd
                 {
                     _gpio.OpenPin(_disp, PinMode.Output);
                     _gpio.Write(_disp, PinValue.High);
-                    Thread.Sleep(s_powerup_disp_delay);
+                    DelayHelper.DelayMicroseconds(s_powerup_disp_delay, true);
                 }
 
                 if (_extcomin > -1)
                 {
                     _gpio.OpenPin(_extcomin, PinMode.Output);
                     _gpio.Write(_extcomin, PinValue.Low);
-                    Thread.Sleep(s_powerup_extcomin_delay);
+                    DelayHelper.DelayMicroseconds(s_powerup_extcomin_delay, true);
                 }
             }
         }
@@ -255,9 +269,9 @@ namespace Iot.Device.MemoryLcd
             if (_gpio != null && _scs > -1)
             {
                 _gpio.Write(_scs, PinValue.High);
-                Thread.Sleep(s_ts_scs);
+                DelayHelper.DelayMicroseconds(s_ts_scs, true);
                 _spi.Write(bytes);
-                Thread.Sleep(s_th_scs);
+                DelayHelper.DelayMicroseconds(s_th_scs, true);
                 _gpio.Write(_scs, PinValue.Low);
             }
             else
@@ -269,27 +283,33 @@ namespace Iot.Device.MemoryLcd
         /// <inheritdoc/>
         public void Dispose()
         {
-            _spi?.Dispose();
+            _spi.Dispose();
             _spi = null;
 
             if (_gpio != null)
             {
-                if (_scs > -1)
+                if (_shouldDispose)
                 {
-                    _gpio.ClosePin(_scs);
+                    _gpio.Dispose();
+                }
+                else
+                {
+                    if (_scs > -1)
+                    {
+                        _gpio.ClosePin(_scs);
+                    }
+
+                    if (_disp > -1)
+                    {
+                        _gpio.ClosePin(_disp);
+                    }
+
+                    if (_extcomin > -1)
+                    {
+                        _gpio.ClosePin(_extcomin);
+                    }
                 }
 
-                if (_disp > -1)
-                {
-                    _gpio.ClosePin(_disp);
-                }
-
-                if (_extcomin > -1)
-                {
-                    _gpio.ClosePin(_extcomin);
-                }
-
-                _gpio.Dispose();
                 _gpio = null;
             }
 
