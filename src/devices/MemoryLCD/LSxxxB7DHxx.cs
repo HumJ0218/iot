@@ -3,11 +3,10 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Device;
 using System.Device.Gpio;
 using System.Device.Spi;
-using System.Drawing;
 using System.Linq;
-using System.Threading;
 
 namespace Iot.Device.MemoryLcd
 {
@@ -18,10 +17,13 @@ namespace Iot.Device.MemoryLcd
     {
         #region  Delay constants for LCD timing
 
-        private const int s_powerup_disp_delay = 30; // (>30us)
-        private const int s_powerup_extcomin_delay = 30; // (>30us)
-        private const int s_ts_scs = 6; // >6us
-        private const int s_th_scs = 2; // >2us
+        // see datasheet 6-2 Power Supply Sequence
+        private const int T3 = 30; // Release time for initialization of TCOM latch (>30us)
+        private const int T4 = 30; // TCOM polarity initialization time (>30us)
+
+        // see datasheet 6-3 Input Signal Basic Characteristics
+        private const int TsScs = 3; // SCS setup time (>3us)
+        private const int ThScs = 1; // SCS hold time (>1us)
         #endregion
 
         #region Screen specification
@@ -60,33 +62,35 @@ namespace Iot.Device.MemoryLcd
         private readonly int _extcomin;
         #endregion
 
+        private readonly bool _shouldDispose;
         private GpioController _gpio;
-        private bool _shouldDispose;
 
         private SpiDevice _spi;
 
-        private byte[] _lineNumberBuffer;
-        private byte[] _frameBuffer;
+        internal byte[] _lineNumberBuffer;
+        internal byte[] _frameBuffer;
 
         /// <summary>
         /// Create a memory LCD device
         /// </summary>
         /// <param name="spi">SPI controller</param>
-        /// <param name="gpio">GPIO controller</param>
+        /// <param name="gpio"><see cref="GpioController"/> related with operations on pins</param>
+        /// <param name="pinNumberingScheme">The numbering scheme used to represent pins provided by GPIO controller</param>
+        /// <param name="shouldDispose">True to dispose the Gpio Controller</param>
         /// <param name="scs">Chip select signal</param>
         /// <param name="disp">Display ON/OFF signal</param>
         /// <param name="extcomin">External COM inversion signal input</param>
         internal LSxxxB7DHxx(SpiDevice spi, GpioController gpio = null, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical, bool shouldDispose = true, int scs = -1, int disp = -1, int extcomin = -1)
         {
             _spi = spi ?? throw new ArgumentNullException(nameof(spi));
-            if (_spi.cs != 1)
+            if (_spi.ConnectionSettings.ChipSelectLineActiveState != PinValue.High)
             {
-                throw new confilitException();
+                throw new Exception("Chip select line active state must be high");
             }
 
             if (scs != -1 || disp != -1 || extcomin != -1)
             {
-                _shouldDispose = gpioController == null || shouldDispose;
+                _shouldDispose = gpio == null || shouldDispose;
                 _gpio = gpio ?? new GpioController(pinNumberingScheme);
             }
             else
@@ -94,6 +98,7 @@ namespace Iot.Device.MemoryLcd
                 _shouldDispose = false;
                 _gpio = null;
             }
+
             _scs = scs;
             _disp = disp;
             _extcomin = extcomin;
@@ -101,7 +106,7 @@ namespace Iot.Device.MemoryLcd
             BytesPerLine = (PixelWidth + 7) / 8;
 
             _lineNumberBuffer = Enumerable.Range(0, PixelHeight).Select(m => (byte)m).ToArray();
-            _frameBuffer = stackalloc byte[BytesPerLine * PixelHeight];
+            _frameBuffer = new byte[BytesPerLine * PixelHeight];
 
             Init();
         }
@@ -117,15 +122,13 @@ namespace Iot.Device.MemoryLcd
             }
 
             // m(1), ag(1), d(18), dummy(2)
-            Span<byte> buffer = stackalloc byte[BytesPerLine + 4];
+            Span<byte> outputBuffer = stackalloc byte[BytesPerLine + 4];
 
-            buffer[0] = (byte)(ModeSelectionPeriodByte.Mode | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
-            buffer[1] = Utility.GetAgByte(lineIndex);
+            outputBuffer[0] = (byte)(ModeSelectionPeriodByte.Mode | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
+            outputBuffer[1] = AgBytes.Table[lineIndex];
+            data.CopyTo(outputBuffer.Slice(2, BytesPerLine));
 
-            Span<byte> line = buffer.AsSpan(2, BytesPerLine);
-            data.CopyTo(line);
-
-            WriteSpi(buffer);
+            WriteSpi(outputBuffer);
         }
 
         /// <summary>
@@ -139,24 +142,21 @@ namespace Iot.Device.MemoryLcd
             }
 
             // m(1), ag1(1), d1(18), dummy2(1), ag2(1), d2(18), ... , dummyn(1), agn(1), dn(18), dummy(2)
-            Span<byte> buffer = stackalloc byte[2 + (2 + BytesPerLine) * lineIndex.Length];
+            Span<byte> outputBuffer = stackalloc byte[2 + (2 + BytesPerLine) * lineIndex.Length];
 
-            buffer[0] = (byte)(ModeSelectionPeriodByte.Mode | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
+            outputBuffer[0] = (byte)(ModeSelectionPeriodByte.Mode | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
 
             for (int i = 0; i < lineIndex.Length; i++)
             {
                 int from = BytesPerLine * i;
                 int to = 1 + (2 + BytesPerLine) * i;
 
-                buffer[to] = Utility.GetAgByte(lineIndex[i] + 1);
+                outputBuffer[to] = AgBytes.Table[lineIndex[i] + 1];
 
-                Span<byte> fromLine = data.Slice(from, BytesPerLine);
-                Span<byte> toLine = buffer.AsSpan(to + 1, BytesPerLine);
-
-                fromLine.CopyTo(toLine);
+                data.Slice(from, BytesPerLine).CopyTo(outputBuffer.Slice(to + 1, BytesPerLine));
             }
 
-            WriteSpi(buffer);
+            WriteSpi(outputBuffer);
         }
 
         /// <summary>
@@ -165,11 +165,11 @@ namespace Iot.Device.MemoryLcd
         public void Display(bool frameInversion = false)
         {
             // m(1), dummy(1)
-            Span<byte> buffer = stackalloc byte[2];
+            Span<byte> outputBuffer = stackalloc byte[2];
 
-            buffer[0] = (byte)(frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy);
+            outputBuffer[0] = (byte)(frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy);
 
-            WriteSpi(buffer);
+            WriteSpi(outputBuffer);
         }
 
         /// <summary>
@@ -178,33 +178,11 @@ namespace Iot.Device.MemoryLcd
         public void AllClear(bool frameInversion = false)
         {
             // m(1), dummy(1)
-            Span<byte> buffer = stackalloc byte[2];
+            Span<byte> outputBuffer = stackalloc byte[2];
 
-            buffer[0] = (byte)(ModeSelectionPeriodByte.AllClear | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
+            outputBuffer[0] = (byte)(ModeSelectionPeriodByte.AllClear | (frameInversion ? ModeSelectionPeriodByte.FrameInversion : ModeSelectionPeriodByte.Dummy));
 
-            WriteSpi(buffer);
-        }
-
-        /// <summary>
-        /// Show image to device
-        /// </summary>
-        /// <param name="image">Image to show</param>
-        /// <param name="split">Number to splits<br/>To avoid buffer overflow exceptions, it needs to split one frame into multiple sends for some device.</param>
-        /// <param name="frameInversion">Frame inversion flag</param>
-        public void ShowImage(Bitmap image, int split = 1, bool frameInversion = false)
-        {
-            FillImageBufferWithImage(image);
-
-            int linesToSend = PixelHeight / split;
-            int bytesToSend = _frameBuffer.Length / split;
-
-            for (int fs = 0; fs < split; fs++)
-            {
-                Span<byte> lineNumbers = _lineNumberBuffer.AsSpan(linesToSend * fs, linesToSend);
-                Span<byte> bytes = _frameBuffer.AsSpan(bytesToSend * fs, bytesToSend);
-
-                DataUpdateMultipleLines(lineNumbers, bytes, frameInversion);
-            }
+            WriteSpi(outputBuffer);
         }
 
         private void Init()
@@ -220,46 +198,14 @@ namespace Iot.Device.MemoryLcd
                 {
                     _gpio.OpenPin(_disp, PinMode.Output);
                     _gpio.Write(_disp, PinValue.High);
-                    DelayHelper.DelayMicroseconds(s_powerup_disp_delay, true);
+                    DelayHelper.DelayMicroseconds(T3, true);
                 }
 
                 if (_extcomin > -1)
                 {
                     _gpio.OpenPin(_extcomin, PinMode.Output);
                     _gpio.Write(_extcomin, PinValue.Low);
-                    DelayHelper.DelayMicroseconds(s_powerup_extcomin_delay, true);
-                }
-            }
-        }
-
-        private void FillImageBufferWithImage(Bitmap image)
-        {
-            if (image.Width != PixelWidth)
-            {
-                throw new ArgumentException($"The width of the image should be {PixelWidth}", nameof(image));
-            }
-
-            if (image.Height != PixelHeight)
-            {
-                throw new ArgumentException($"The height of the image should be {PixelHeight}", nameof(image));
-            }
-
-            for (int y = 0; y < image.Height; y++)
-            {
-                for (int x = 0; x < image.Width; x += 8)
-                {
-                    int bx = x / 8;
-                    byte dataByte = (byte)(
-                        (image.GetPixel(x + 0, y).GetBrightness() > 0.5 ? 0b10000000 : 0) |
-                        (image.GetPixel(x + 1, y).GetBrightness() > 0.5 ? 0b01000000 : 0) |
-                        (image.GetPixel(x + 2, y).GetBrightness() > 0.5 ? 0b00100000 : 0) |
-                        (image.GetPixel(x + 3, y).GetBrightness() > 0.5 ? 0b00010000 : 0) |
-                        (image.GetPixel(x + 4, y).GetBrightness() > 0.5 ? 0b00001000 : 0) |
-                        (image.GetPixel(x + 5, y).GetBrightness() > 0.5 ? 0b00000100 : 0) |
-                        (image.GetPixel(x + 6, y).GetBrightness() > 0.5 ? 0b00000010 : 0) |
-                        (image.GetPixel(x + 7, y).GetBrightness() > 0.5 ? 0b00000001 : 0));
-
-                    _frameBuffer[bx + y * BytesPerLine] = dataByte;
+                    DelayHelper.DelayMicroseconds(T4, true);
                 }
             }
         }
@@ -269,9 +215,9 @@ namespace Iot.Device.MemoryLcd
             if (_gpio != null && _scs > -1)
             {
                 _gpio.Write(_scs, PinValue.High);
-                DelayHelper.DelayMicroseconds(s_ts_scs, true);
+                DelayHelper.DelayMicroseconds(TsScs, true);
                 _spi.Write(bytes);
-                DelayHelper.DelayMicroseconds(s_th_scs, true);
+                DelayHelper.DelayMicroseconds(ThScs, true);
                 _gpio.Write(_scs, PinValue.Low);
             }
             else

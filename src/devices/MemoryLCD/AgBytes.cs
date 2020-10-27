@@ -2,18 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
-
 namespace Iot.Device.MemoryLcd
 {
-    internal static class Utility
+    /// <summary>
+    /// Gate Line Address Setup
+    /// </summary>
+    internal static class AgBytes
     {
-        public static byte GetAgByte(int b)
-        {
-            return s_byteTable[b];
-        }
-
-        private static readonly byte[] s_byteTable = byte[]
+        public static byte[] Table { get; } = new byte[]
         {
             0b00000000,
             0b10000000,

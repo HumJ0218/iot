@@ -1,14 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="$(MainLibraryPath)System.Device.Gpio.csproj" />
+    <PackageReference Include="Iot.Device.Bindings" Version="1.1.0-prerelease.20276.1" />
+    <PackageReference Include="System.Device.Gpio" Version="1.1.0-prerelease.20276.1" />
     <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
     <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Extends\LSxxxB7DHxxExtends.cs" />
   </ItemGroup>
 
 </Project>
