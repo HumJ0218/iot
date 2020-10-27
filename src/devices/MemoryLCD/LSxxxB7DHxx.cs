@@ -83,10 +83,6 @@ namespace Iot.Device.MemoryLcd
         internal LSxxxB7DHxx(SpiDevice spi, GpioController gpio = null, bool shouldDispose = true, int scs = -1, int disp = -1, int extcomin = -1, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical)
         {
             _spi = spi ?? throw new ArgumentNullException(nameof(spi));
-            if (_spi.ConnectionSettings.ChipSelectLineActiveState != PinValue.High)
-            {
-                throw new Exception("Chip select line active state must be high");
-            }
 
             if (scs != -1 || disp != -1 || extcomin != -1)
             {
