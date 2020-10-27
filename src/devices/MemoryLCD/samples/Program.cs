@@ -124,7 +124,7 @@ namespace MemoryLcd.Samples
                 mlcd.ShowImage(image, 4);
 
                 fpsCpunter++;
-                Task.Delay(1).Wait();
+                Task.Delay(0).Wait();
             }
         }
     }
