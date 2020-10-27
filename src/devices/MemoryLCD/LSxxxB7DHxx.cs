@@ -75,12 +75,12 @@ namespace Iot.Device.MemoryLcd
         /// </summary>
         /// <param name="spi">SPI controller</param>
         /// <param name="gpio"><see cref="GpioController"/> related with operations on pins</param>
-        /// <param name="pinNumberingScheme">The numbering scheme used to represent pins provided by GPIO controller</param>
         /// <param name="shouldDispose">True to dispose the Gpio Controller</param>
         /// <param name="scs">Chip select signal</param>
         /// <param name="disp">Display ON/OFF signal</param>
         /// <param name="extcomin">External COM inversion signal input</param>
-        internal LSxxxB7DHxx(SpiDevice spi, GpioController gpio = null, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical, bool shouldDispose = true, int scs = -1, int disp = -1, int extcomin = -1)
+        /// <param name="pinNumberingScheme">The numbering scheme used to represent pins provided by GPIO controller</param>
+        internal LSxxxB7DHxx(SpiDevice spi, GpioController gpio = null, bool shouldDispose = true, int scs = -1, int disp = -1, int extcomin = -1, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical)
         {
             _spi = spi ?? throw new ArgumentNullException(nameof(spi));
             if (_spi.ConnectionSettings.ChipSelectLineActiveState != PinValue.High)
