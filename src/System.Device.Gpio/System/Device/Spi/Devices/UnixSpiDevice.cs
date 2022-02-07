@@ -4,6 +4,7 @@
 using System.Device.Gpio;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace System.Device.Spi
 {
@@ -42,6 +43,25 @@ namespace System.Device.Spi
         /// so the object returned will be a clone of the settings object.
         /// </summary>
         public override SpiConnectionSettings ConnectionSettings => new SpiConnectionSettings(_settings);
+
+        /// <summary>
+        /// Get SPI buffer byte size
+        /// </summary>
+        public int BufferSize
+        {
+            get
+            {
+                Match? match = new Regex("(?<=spidev\\.bufsiz=)[0-9]*").Match(File.ReadAllText("/boot/cmdline.txt"));
+                if (match.Success && int.TryParse(match.Value, out var bufsiz))
+                {
+                    return bufsiz;
+                }
+                else
+                {
+                    return 4096;
+                }
+            }
+        }
 
         private unsafe void Initialize()
         {
