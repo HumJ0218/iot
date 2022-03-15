@@ -6,10 +6,14 @@ using System.Collections.Generic;
 using System.Device.Gpio;
 using System.Device.Spi;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using Iot.Device.Card.CreditCardProcessing;
 using Iot.Device.Card.Mifare;
+using Iot.Device.Card.Ultralight;
 using Iot.Device.Ft4222;
+using Iot.Device.FtCommon;
+using Iot.Device.Ndef;
 using Iot.Device.Pn5180;
 using Iot.Device.Rfid;
 
@@ -19,7 +23,7 @@ Console.WriteLine("Hello Pn5180!");
 Console.WriteLine($"Choose the device you want to use");
 Console.WriteLine($"1 for hardware Spi like on a Raspberry Pi");
 Console.WriteLine($"2 for FT4222");
-var choice = Console.ReadKey().KeyChar;
+char choice = Console.ReadKey().KeyChar;
 Console.WriteLine();
 Console.WriteLine();
 if (choice == '1')
@@ -41,11 +45,12 @@ Console.WriteLine($"Product: {product}, Firmware: {firmware}, EEPROM: {eeprom}")
 
 Console.WriteLine($"Choose what you want to test");
 Console.WriteLine($"1 dump a full credit card ISO 14443 type B");
-Console.WriteLine($"2 dump a Mifare IS 14443 type A");
+Console.WriteLine($"2 dump a Mifare ISO 14443 type A");
 Console.WriteLine($"3 EEPROM operations");
 Console.WriteLine($"4 Radio Frequency operations");
 Console.WriteLine($"5 Pull ISO 14443 Type A and B cards, display information");
 Console.WriteLine($"6 Pull ISO 14443 B cards, display information");
+Console.WriteLine($"7 dump Ultralight card and various tests");
 choice = Console.ReadKey().KeyChar;
 Console.WriteLine();
 Console.WriteLine();
@@ -74,6 +79,10 @@ else if (choice == '6')
 {
     PullTypeBCards();
 }
+else if (choice == '7')
+{
+    ProcessUltralight();
+}
 else
 {
     Console.WriteLine($"Not a valid choice, please choose the test you want to run");
@@ -84,7 +93,7 @@ Pn5180 HardwareSpi()
     SpiDevice spi = SpiDevice.Create(new SpiConnectionSettings(0, 1) { ClockFrequency = Pn5180.MaximumSpiClockFrequency, Mode = Pn5180.DefaultSpiMode, DataFlow = DataFlow.MsbFirst });
 
     // Reset the device
-    using GpioController gpioController = new ();
+    using GpioController gpioController = new();
     gpioController.OpenPin(4, PinMode.Output);
     gpioController.Write(4, PinValue.Low);
     Thread.Sleep(10);
@@ -96,7 +105,7 @@ Pn5180 HardwareSpi()
 
 Pn5180 Ft4222()
 {
-    List<DeviceInformation> devices = FtCommon.GetDevices();
+    List<FtDevice> devices = FtCommon.GetDevices();
     Console.WriteLine($"{devices.Count} FT4222 elements found");
     foreach (var device in devices)
     {
@@ -109,15 +118,15 @@ Pn5180 Ft4222()
         Console.WriteLine();
     }
 
-    var (chip, dll) = FtCommon.GetVersions();
+    var (chip, dll) = Ft4222Common.GetVersions();
     Console.WriteLine($"Chip version: {chip}");
     Console.WriteLine($"Dll version: {dll}");
 
     Ft4222Spi ftSpi = new Ft4222Spi(new SpiConnectionSettings(0, 1) { ClockFrequency = Pn5180.MaximumSpiClockFrequency, Mode = Pn5180.DefaultSpiMode, DataFlow = DataFlow.MsbFirst });
 
-    GpioController gpioController = new GpioController(PinNumberingScheme.Board, new Ft4222Gpio());
+    GpioController gpioController = new(PinNumberingScheme.Board, new Ft4222Gpio());
 
-    // REset the device
+    // Reset the device
     gpioController.OpenPin(0, PinMode.Output);
     gpioController.Write(0, PinValue.Low);
     Thread.Sleep(10);
@@ -154,7 +163,7 @@ void RfConfiguration()
 {
     var sizeConfig = pn5180.GetRadioFrequencyConfigSize(TransmitterRadioFrequencyConfiguration.Iso14443B_106);
     Span<byte> configBuff = stackalloc byte[Pn5180.RadioFrequencyConfigurationSize * sizeConfig];
-    var ret = pn5180.RetrieveRadioFrequencyConfiguration(TransmitterRadioFrequencyConfiguration.Iso14443B_106, configBuff);
+    pn5180.RetrieveRadioFrequencyConfiguration(TransmitterRadioFrequencyConfiguration.Iso14443B_106, configBuff);
     for (int i = 0; i < sizeConfig; i++)
     {
         Console.WriteLine($"Register: {configBuff[Pn5180.RadioFrequencyConfigurationSize * i]}, Data: {BitConverter.ToString(configBuff.Slice(Pn5180.RadioFrequencyConfigurationSize * i + 1, Pn5180.RadioFrequencyConfigurationSize - 1).ToArray())}");
@@ -222,29 +231,30 @@ void TypeA()
         {
             mifareCard.BlockNumber = block;
             mifareCard.Command = MifareCardCommand.AuthenticationB;
-            var ret = mifareCard.RunMifiCardCommand();
+            var ret = mifareCard.RunMifareCardCommand();
+            mifareCard.ReselectCard();
             if (ret < 0)
             {
                 // Try another one
                 mifareCard.Command = MifareCardCommand.AuthenticationA;
-                ret = mifareCard.RunMifiCardCommand();
+                ret = mifareCard.RunMifareCardCommand();
             }
 
-            if (ret >= 0 && mifareCard.Data is object)
+            if (ret >= 0)
             {
                 mifareCard.BlockNumber = block;
                 mifareCard.Command = MifareCardCommand.Read16Bytes;
-                ret = mifareCard.RunMifiCardCommand();
-                if (ret >= 0)
+                ret = mifareCard.RunMifareCardCommand();
+                if (ret >= 0 && mifareCard.Data is object)
                 {
                     Console.WriteLine($"Bloc: {block}, Data: {BitConverter.ToString(mifareCard.Data)}");
                 }
                 else
                 {
-                    Console.WriteLine($"Error reading bloc: {block}, Data: {BitConverter.ToString(mifareCard.Data)}");
+                    Console.WriteLine($"Error reading bloc: {block}");
                 }
 
-                if (block % 4 == 3)
+                if (block % 4 == 3 && mifareCard.Data is object)
                 {
                     // Check what are the permissions
                     for (byte j = 3; j > 0; j--)
@@ -344,7 +354,7 @@ void ReadAndDisplayData(CreditCard creditCard)
     DisplayTags(creditCard.Tags, 0);
     // Display Log Entries
     var format = Tag.SearchTag(creditCard.Tags, 0x9F4F).FirstOrDefault();
-    if (format != null)
+    if (format is object)
     {
         DisplayLogEntries(creditCard.LogEntries, format.Tags);
     }
@@ -411,5 +421,172 @@ void DisplayLogEntries(List<byte[]> entries, List<Tag> format)
         }
 
         Console.WriteLine();
+    }
+}
+
+void ProcessUltralight()
+{
+    Data106kbpsTypeA? card;
+    do
+    {
+        if (pn5180.ListenToCardIso14443TypeA(TransmitterRadioFrequencyConfiguration.Iso14443A_Nfc_PI_106_106, ReceiverRadioFrequencyConfiguration.Iso14443A_Nfc_PI_106_106, out card, 20000))
+        {
+            Console.WriteLine($"ATQA: {card.Atqa}");
+            Console.WriteLine($"SAK: {card.Sak}");
+            Console.WriteLine($"UID: {BitConverter.ToString(card.NfcId)}");
+            break;
+        }
+        else
+        {
+            Console.WriteLine("Error polling the card.");
+        }
+    }
+    while (true);
+
+    var ultralight = new UltralightCard(pn5180!, 0);
+    ultralight.SerialNumber = card.NfcId;
+    Console.WriteLine($"Type: {ultralight.UltralightCardType}, Ndef capacity: {ultralight.NdefCapacity}");
+
+    var version = ultralight.GetVersion();
+    if ((version != null) && (version.Length > 0))
+    {
+        Console.WriteLine("Get Version details: ");
+        for (int i = 0; i < version.Length; i++)
+        {
+            Console.Write($"{version[i]:X2} ");
+        }
+
+        Console.WriteLine();
+    }
+    else
+    {
+        Console.WriteLine("Can't read the version.");
+    }
+
+    var sign = ultralight.GetSignature();
+    if ((sign != null) && (sign.Length > 0))
+    {
+        Console.WriteLine("Signature: ");
+        for (int i = 0; i < sign.Length; i++)
+        {
+            Console.Write($"{sign[i]:X2} ");
+        }
+
+        Console.WriteLine();
+    }
+    else
+    {
+        Console.WriteLine("Can't read the signature.");
+    }
+
+    // The ReadFast feature can be used as well, note that the MFRC522 has a very limited FIFO
+    // So maximum 9 pages can be read as once.
+    Console.WriteLine("Fast read example:");
+    var buff = ultralight.ReadFast(0, 8);
+    if (buff != null)
+    {
+        for (int i = 0; i < buff.Length / 4; i++)
+        {
+            Console.WriteLine($"  Block {i} - {buff[i * 4]:X2} {buff[i * 4 + 1]:X2} {buff[i * 4 + 2]:X2} {buff[i * 4 + 3]:X2}");
+        }
+    }
+
+    Console.WriteLine("Dump of all the card:");
+    for (int block = 0; block < ultralight.NumberBlocks; block++)
+    {
+        ultralight.BlockNumber = (byte)block; // Safe cast, can't be more than 255
+        ultralight.Command = UltralightCommand.Read16Bytes;
+        var ret = ultralight.RunUltralightCommand();
+        if (ret > 0)
+        {
+            Console.Write($"  Block: {ultralight.BlockNumber:X2} - ");
+            for (int i = 0; i < 4; i++)
+            {
+                Console.Write($"{ultralight.Data[i]:X2} ");
+            }
+
+            var isReadOnly = ultralight.IsPageReadOnly(ultralight.BlockNumber);
+            Console.Write($"- Read only: {isReadOnly} ");
+
+            Console.WriteLine();
+        }
+        else
+        {
+            Console.WriteLine("Can't read card");
+            break;
+        }
+    }
+
+    Console.WriteLine("Configuration of the card");
+    // Get the Configuration
+    var res = ultralight.TryGetConfiguration(out Configuration configuration);
+    if (res)
+    {
+        Console.WriteLine("  Mirror:");
+        Console.WriteLine($"    {configuration.Mirror.MirrorType}, page: {configuration.Mirror.Page}, position: {configuration.Mirror.Position}");
+        Console.WriteLine("  Authentication:");
+        Console.WriteLine($"    Page req auth: {configuration.Authentication.AuthenticationPageRequirement}, Is auth req for read and write: {configuration.Authentication.IsReadWriteAuthenticationRequired}");
+        Console.WriteLine($"    Is write lock: {configuration.Authentication.IsWritingLocked}, Max num tries: {configuration.Authentication.MaximumNumberOfPossibleTries}");
+        Console.WriteLine("  NFC Counter:");
+        Console.WriteLine($"    Enabled: {configuration.NfcCounter.IsEnabled}, Password protected: {configuration.NfcCounter.IsPasswordProtected}");
+        Console.WriteLine($"  Is strong modulation: {configuration.IsStrongModulation}");
+    }
+    else
+    {
+        Console.WriteLine("Error getting the configuration");
+    }
+
+    NdefMessage message;
+    res = ultralight.TryReadNdefMessage(out message);
+    if (res && message.Length != 0)
+    {
+        foreach (var record in message.Records)
+        {
+            Console.WriteLine($"Record length: {record.Length}");
+            if (TextRecord.IsTextRecord(record))
+            {
+                var text = new TextRecord(record);
+                Console.WriteLine(text.Text);
+            }
+        }
+    }
+    else
+    {
+        Console.WriteLine("No NDEF message in this ");
+    }
+
+    res = ultralight.IsFormattedNdef();
+    if (!res)
+    {
+        Console.WriteLine("Card is not NDEF formated, we will try to format it");
+        res = ultralight.FormatNdef();
+        if (!res)
+        {
+            Console.WriteLine("Impossible to format in NDEF, we will still try to write NDEF content.");
+        }
+        else
+        {
+            res = ultralight.IsFormattedNdef();
+            if (res)
+            {
+                Console.WriteLine("Formating successful");
+            }
+            else
+            {
+                Console.WriteLine("Card is not NDEF formated.");
+            }
+        }
+    }
+
+    NdefMessage newMessage = new NdefMessage();
+    newMessage.Records.Add(new TextRecord("I ❤ .NET IoT", "en", Encoding.UTF8));
+    res = ultralight.WriteNdefMessage(newMessage);
+    if (res)
+    {
+        Console.WriteLine("NDEF data successfully written on the card.");
+    }
+    else
+    {
+        Console.WriteLine("Error writing NDEF data on card");
     }
 }

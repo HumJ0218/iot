@@ -28,15 +28,12 @@ namespace Iot.Device.MotorHat
 
         public override double Speed
         {
-            get
-            {
-                // Just return the last speed received
-                return _speed;
-            }
+            // Just return the last speed received
+            get => _speed;
             set
             {
                 // Make sure the speed is between -1 and 1
-                _speed = Math.Clamp(value, -1, 1);
+                _speed = MathExtensions.Clamp(value, -1, 1);
 
                 // The motor Direction is handled configuring in1 and in2 based on speed sign
                 if (_speed > 0)
@@ -67,7 +64,7 @@ namespace Iot.Device.MotorHat
             }
         }
 
-        protected override void Dispose(bool disposing)
+        public override void Dispose()
         {
             _pwmPin.Stop();
             _in1Pin.Stop();

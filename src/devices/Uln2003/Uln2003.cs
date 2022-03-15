@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
 using System.Device.Gpio;
 using System.Diagnostics;
 
@@ -14,23 +17,6 @@ namespace Iot.Device.Uln2003
         /// Default delay in microseconds.
         /// </summary>
         private const long StepperMotorDefaultDelay = 1000;
-
-        private int _pin1;
-        private int _pin2;
-        private int _pin3;
-        private int _pin4;
-        private int _steps = 0;
-        private int _engineStep = 0;
-        private int _currentStep = 0;
-        private int _stepsToRotate = 4096;
-        private int _stepsToRotateInMode = 4096;
-        private StepperMode _mode = StepperMode.HalfStep;
-        private bool[,] _currentSwitchingSequence = _halfStepSequence;
-        private bool _isClockwise = true;
-        private GpioController _controller;
-        private bool _shouldDispose;
-        private Stopwatch _stopwatch = new Stopwatch();
-        private long _stepMicrosecondsDelay;
 
         private static bool[,] _halfStepSequence = new bool[4, 8]
         {
@@ -56,6 +42,23 @@ namespace Iot.Device.Uln2003
             { false, false, true, true, false, false, true, true }
         };
 
+        private int _pin1;
+        private int _pin2;
+        private int _pin3;
+        private int _pin4;
+        private int _steps = 0;
+        private int _engineStep = 0;
+        private int _currentStep = 0;
+        private int _stepsToRotate = 4096;
+        private int _stepsToRotateInMode = 4096;
+        private StepperMode _mode = StepperMode.HalfStep;
+        private bool[,] _currentSwitchingSequence = _halfStepSequence;
+        private bool _isClockwise = true;
+        private GpioController _controller;
+        private bool _shouldDispose;
+        private Stopwatch _stopwatch = new Stopwatch();
+        private long _stepMicrosecondsDelay;
+
         /// <summary>
         /// Initialize a Uln2003 class.
         /// </summary>
@@ -74,7 +77,7 @@ namespace Iot.Device.Uln2003
             _pin4 = pin4;
 
             _controller = controller ?? new GpioController();
-            _shouldDispose = controller == null ? true : shouldDispose;
+            _shouldDispose = shouldDispose || controller is null;
             _stepsToRotate = stepsToRotate;
 
             _controller.OpenPin(_pin1, PinMode.Output);
@@ -94,10 +97,7 @@ namespace Iot.Device.Uln2003
         /// </summary>
         public StepperMode Mode
         {
-            get
-            {
-                return _mode;
-            }
+            get => _mode;
             set
             {
                 _mode = value;

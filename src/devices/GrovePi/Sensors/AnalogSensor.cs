@@ -13,6 +13,16 @@ namespace Iot.Device.GrovePiDevice.Sensors
     /// </summary>
     public class AnalogSensor
     {
+        /// <summary>
+        /// Only Analogic ports are supported
+        /// </summary>
+        public static List<GrovePort> SupportedPorts => new List<GrovePort>()
+        {
+            GrovePort.AnalogPin0,
+            GrovePort.AnalogPin1,
+            GrovePort.AnalogPin2
+        };
+
         internal GrovePi _grovePi;
 
         /// <summary>
@@ -34,7 +44,7 @@ namespace Iot.Device.GrovePiDevice.Sensors
         {
             if (!SupportedPorts.Contains(port))
             {
-                throw new ArgumentException($"Grove port {port} not supported.", nameof(port));
+                throw new ArgumentException(nameof(port), "Grove port not supported");
             }
 
             _grovePi = grovePi;
@@ -62,15 +72,5 @@ namespace Iot.Device.GrovePiDevice.Sensors
         /// Get the namme Analog Sensor
         /// </summary>
         public string SensorName => "Analog Sensor";
-
-        /// <summary>
-        /// Only Analogic ports are supported
-        /// </summary>
-        public static List<GrovePort> SupportedPorts => new List<GrovePort>()
-        {
-            GrovePort.AnalogPin0,
-            GrovePort.AnalogPin1,
-            GrovePort.AnalogPin2
-        };
     }
 }

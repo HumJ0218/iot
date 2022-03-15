@@ -3,12 +3,14 @@
 
 using System;
 using System.Device.Gpio;
+using System.Device.Model;
 
 namespace Iot.Device.Hcsr501
 {
     /// <summary>
     /// PIR Sensor HC-SR501
     /// </summary>
+    [Interface("PIR Sensor HC-SR501")]
     public class Hcsr501 : IDisposable
     {
         private readonly int _outPin;
@@ -26,7 +28,7 @@ namespace Iot.Device.Hcsr501
         {
             _outPin = outPin;
 
-            _shouldDispose = gpioController == null ? true : shouldDispose;
+            _shouldDispose = shouldDispose || gpioController is null;
             _controller = gpioController ?? new GpioController(pinNumberingScheme);
             _controller.OpenPin(outPin, PinMode.Input);
             _controller.RegisterCallbackForPinValueChangedEvent(outPin, PinEventTypes.Falling, Sensor_ValueChanged);
@@ -36,6 +38,7 @@ namespace Iot.Device.Hcsr501
         /// <summary>
         /// If a motion is detected, return true.
         /// </summary>
+        [Telemetry]
         public bool IsMotionDetected => _controller.Read(_outPin) == PinValue.High;
 
         /// <summary>
@@ -64,7 +67,7 @@ namespace Iot.Device.Hcsr501
 
         private void Sensor_ValueChanged(object sender, PinValueChangedEventArgs e)
         {
-            if (Hcsr501ValueChanged != null)
+            if (Hcsr501ValueChanged is object)
             {
                 Hcsr501ValueChanged(sender, new Hcsr501ValueChangedEventArgs(_controller.Read(_outPin)));
             }

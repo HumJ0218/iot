@@ -160,7 +160,7 @@ namespace Iot.Device.BrickPi3.Movement
 
         private void RunMotorSyncTime(BrickPortMotor[] ports, int[] speeds, int timeout)
         {
-            if ((ports == null) || (speeds == null))
+            if ((ports is null) || (speeds is null))
             {
                 return;
             }
@@ -171,7 +171,7 @@ namespace Iot.Device.BrickPi3.Movement
             }
 
             // create a timer for the needed time to run
-            if (_timer == null)
+            if (_timer is null)
             {
                 _timer = new Timer(RunUntil, ports, TimeSpan.FromMilliseconds(timeout), Timeout.InfiniteTimeSpan);
             }
@@ -201,7 +201,7 @@ namespace Iot.Device.BrickPi3.Movement
 
         private void RunUntil(object? state)
         {
-            if (state == null)
+            if (state is null)
             {
                 return;
             }
@@ -224,13 +224,13 @@ namespace Iot.Device.BrickPi3.Movement
 
         private void StartMotor(int port, int speed)
         {
-            speed = Math.Clamp(speed, -255, 255);
+            speed = MathExtensions.Clamp(speed, -255, 255);
             _brick.SetMotorPower((byte)port, speed);
         }
 
         private void RunMotorSyncDegrees(BrickPortMotor[] ports, int[] speeds, int[] degrees)
         {
-            if ((ports == null) || (speeds == null) || degrees == null)
+            if ((ports is null) || (speeds is null) || degrees is null)
             {
                 return;
             }

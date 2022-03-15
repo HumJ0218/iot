@@ -6,6 +6,7 @@ using System.Device.I2c;
 using System.Threading;
 using Iot.Device.Common;
 using Iot.Device.DHTxx;
+using UnitsNet;
 
 Console.WriteLine("Hello DHT!");
 Console.WriteLine("Select the DHT sensor you want to use:");
@@ -20,10 +21,10 @@ if (choice.KeyChar == '1')
 {
     Console.WriteLine("Press any key to stop the reading");
     // Init DHT10 through I2C
-    I2cConnectionSettings settings = new (1, Dht10.DefaultI2cAddress);
+    I2cConnectionSettings settings = new(1, Dht10.DefaultI2cAddress);
     I2cDevice device = I2cDevice.Create(settings);
 
-    using Dht10 dht = new Dht10(device);
+    using Dht10 dht = new(device);
     Dht(dht);
     return;
 }
@@ -47,7 +48,7 @@ switch (choice.KeyChar)
 {
     case '2':
         Console.WriteLine($"Reading temperature and humidity on DHT11, pin {pin}");
-        using (var dht11 = new Dht11(pin))
+        using (Dht11 dht11 = new(pin))
         {
             Dht(dht11);
         }
@@ -55,7 +56,7 @@ switch (choice.KeyChar)
         break;
     case '3':
         Console.WriteLine($"Reading temperature and humidity on DHT12, pin {pin}");
-        using (var dht12 = new Dht12(pin))
+        using (Dht12 dht12 = new(pin))
         {
             Dht(dht12);
         }
@@ -63,7 +64,7 @@ switch (choice.KeyChar)
         break;
     case '4':
         Console.WriteLine($"Reading temperature and humidity on DHT21, pin {pin}");
-        using (var dht21 = new Dht21(pin))
+        using (Dht21 dht21 = new(pin))
         {
             Dht(dht21);
         }
@@ -71,7 +72,7 @@ switch (choice.KeyChar)
         break;
     case '5':
         Console.WriteLine($"Reading temperature and humidity on DHT22, pin {pin}");
-        using (var dht22 = new Dht22(pin))
+        using (Dht22 dht22 = new(pin))
         {
             Dht(dht22);
         }
@@ -86,19 +87,20 @@ void Dht(DhtBase dht)
 {
     while (!Console.KeyAvailable)
     {
-        var temp = dht.Temperature;
-        var hum = dht.Humidity;
+        Temperature temperature = default;
+        RelativeHumidity humidity = default;
+        bool success = dht.TryReadHumidity(out humidity) && dht.TryReadTemperature(out temperature);
         // You can only display temperature and humidity if the read is successful otherwise, this will raise an exception as
         // both temperature and humidity are NAN
-        if (dht.IsLastReadSuccessful)
+        if (success)
         {
-            Console.WriteLine($"Temperature: {temp.DegreesCelsius}\u00B0C, Relative humidity: {hum.Percent}%");
+            Console.WriteLine($"Temperature: {temperature.DegreesCelsius:F1}\u00B0C, Relative humidity: {humidity.Percent:F1}%");
 
             // WeatherHelper supports more calculations, such as saturated vapor pressure, actual vapor pressure and absolute humidity.
             Console.WriteLine(
-                $"Heat index: {WeatherHelper.CalculateHeatIndex(temp, hum).DegreesCelsius:0.#}\u00B0C");
+                $"Heat index: {WeatherHelper.CalculateHeatIndex(temperature, humidity).DegreesCelsius:F1}\u00B0C");
             Console.WriteLine(
-                $"Dew point: {WeatherHelper.CalculateDewPoint(temp, hum).DegreesCelsius:0.#}\u00B0C");
+                $"Dew point: {WeatherHelper.CalculateDewPoint(temperature, humidity).DegreesCelsius:F1}\u00B0C");
         }
         else
         {

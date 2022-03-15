@@ -40,32 +40,12 @@ namespace Iot.Device.SenseHat
         }
 
         /// <summary>
-        /// Write colors to the device
-        /// </summary>
-        /// <param name="colors">Array of colors</param>
-        public abstract void Write(ReadOnlySpan<Color> colors);
-
-        /// <summary>
-        /// Fill LED matrix with a specific color
-        /// </summary>
-        /// <param name="color">Color to fill the device with</param>
-        public abstract void Fill(Color color = default(Color));
-
-        /// <summary>
-        /// Sets color on specific position of the LED matrix
-        /// </summary>
-        /// <param name="x">X coordinate</param>
-        /// <param name="y">Y coordinate</param>
-        /// <param name="color">Color to be set in the specified position</param>
-        public abstract void SetPixel(int x, int y, Color color);
-
-        /// <summary>
         /// Translates position in the buffer to X, Y coordinates
         /// </summary>
         /// <param name="index">Index</param>
         /// <returns>Tuple of X and Y coordinates</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static (int x, int y) IndexToPosition(int index)
+        public static (int X, int Y) IndexToPosition(int index)
         {
             if (index < 0 || index >= NumberOfPixelsPerRow * NumberOfPixelsPerRow)
             {
@@ -96,6 +76,26 @@ namespace Iot.Device.SenseHat
 
             return x + y * NumberOfPixelsPerRow;
         }
+
+        /// <summary>
+        /// Write colors to the device
+        /// </summary>
+        /// <param name="colors">Array of colors</param>
+        public abstract void Write(ReadOnlySpan<Color> colors);
+
+        /// <summary>
+        /// Fill LED matrix with a specific color
+        /// </summary>
+        /// <param name="color">Color to fill the device with</param>
+        public abstract void Fill(Color color = default(Color));
+
+        /// <summary>
+        /// Sets color on specific position of the LED matrix
+        /// </summary>
+        /// <param name="x">X coordinate</param>
+        /// <param name="y">Y coordinate</param>
+        /// <param name="color">Color to be set in the specified position</param>
+        public abstract void SetPixel(int x, int y, Color color);
 
         /// <inheritdoc/>
         public abstract void Dispose();

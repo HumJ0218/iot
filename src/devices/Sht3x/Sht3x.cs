@@ -3,6 +3,7 @@
 
 using System;
 using System.Device.I2c;
+using System.Device.Model;
 using System.Threading;
 using UnitsNet;
 
@@ -11,6 +12,7 @@ namespace Iot.Device.Sht3x
     /// <summary>
     /// Humidity and Temperature Sensor SHT3x
     /// </summary>
+    [Interface("Humidity and Temperature Sensor SHT3x")]
     public class Sht3x : IDisposable
     {
         // CRC const
@@ -24,6 +26,7 @@ namespace Iot.Device.Sht3x
         /// <summary>
         /// SHT3x Resolution
         /// </summary>
+        [Property]
         public Resolution Resolution { get; set; }
 
         private double _temperature;
@@ -31,11 +34,12 @@ namespace Iot.Device.Sht3x
         /// <summary>
         /// SHT3x Temperature
         /// </summary>
+        [Telemetry]
         public Temperature Temperature
         {
             get
             {
-                ReadTempAndHumi();
+                ReadTempAndHumidity();
                 return Temperature.FromDegreesCelsius(_temperature);
             }
         }
@@ -45,12 +49,13 @@ namespace Iot.Device.Sht3x
         /// <summary>
         /// SHT3x Relative Humidity (%)
         /// </summary>
-        public Ratio Humidity
+        [Telemetry]
+        public RelativeHumidity Humidity
         {
             get
             {
-                ReadTempAndHumi();
-                return Ratio.FromPercent(_humidity);
+                ReadTempAndHumidity();
+                return RelativeHumidity.FromPercent(_humidity);
             }
         }
 
@@ -59,6 +64,7 @@ namespace Iot.Device.Sht3x
         /// <summary>
         /// SHT3x Heater
         /// </summary>
+        [Property]
         public bool Heater
         {
             get => _heater;
@@ -97,10 +103,8 @@ namespace Iot.Device.Sht3x
         /// <summary>
         /// SHT3x Soft Reset
         /// </summary>
-        public void Reset()
-        {
+        public void Reset() =>
             Write(Register.SHT_RESET);
-        }
 
         /// <summary>
         /// Set SHT3x Heater
@@ -121,7 +125,7 @@ namespace Iot.Device.Sht3x
         /// <summary>
         /// Read Temperature and Humidity
         /// </summary>
-        private void ReadTempAndHumi()
+        private void ReadTempAndHumidity()
         {
             Span<byte> writeBuff = stackalloc byte[]
             {

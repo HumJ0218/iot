@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -11,19 +10,17 @@ namespace System.Device.Gpio.Drivers
 {
     internal sealed class LibGpiodDriverEventHandler : IDisposable
     {
-        public event PinChangeEventHandler? ValueRising;
+        private const int ERROR_CODE_EINTR = 4; // Interrupted system call
 
+        private static string s_consumerName = Process.GetCurrentProcess().ProcessName;
+
+        public event PinChangeEventHandler? ValueRising;
         public event PinChangeEventHandler? ValueFalling;
 
         private int _pinNumber;
-
         public CancellationTokenSource CancellationTokenSource;
-
         private Task _task;
-
         private bool _disposing = false;
-
-        private static string s_consumerName = Process.GetCurrentProcess().ProcessName;
 
         public LibGpiodDriverEventHandler(int pinNumber, SafeLineHandle safeLineHandle)
         {
@@ -53,13 +50,20 @@ namespace System.Device.Gpio.Drivers
                     TimeSpec timeout = new TimeSpec
                     {
                         TvSec = new IntPtr(0),
-                        TvNsec = new IntPtr(1000000)
+                        TvNsec = new IntPtr(50_000_000)
                     };
 
                     WaitEventResult waitResult = Interop.libgpiod.gpiod_line_event_wait(pinHandle, ref timeout);
                     if (waitResult == WaitEventResult.Error)
                     {
-                        throw ExceptionHelper.GetIOException(ExceptionResource.EventWaitError, Marshal.GetLastWin32Error(), _pinNumber);
+                        var errorCode = Marshal.GetLastWin32Error();
+                        if (errorCode == ERROR_CODE_EINTR)
+                        {
+                            // ignore Interrupted system call error and retry
+                            continue;
+                        }
+
+                        throw ExceptionHelper.GetIOException(ExceptionResource.EventWaitError, errorCode, _pinNumber);
                     }
 
                     if (waitResult == WaitEventResult.EventOccured)

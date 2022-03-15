@@ -6,6 +6,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Device.I2c;
+using System.Device.Model;
 using System.Threading;
 using Iot.Device.Common;
 using UnitsNet;
@@ -15,6 +16,7 @@ namespace Iot.Device.Bmp180
     /// <summary>
     /// BMP180 - barometer, altitude and temperature sensor
     /// </summary>
+    [Interface("BMP180 - barometer, altitude and temperature sensor")]
     public class Bmp180 : IDisposable
     {
         private readonly CalibrationData _calibrationData;
@@ -32,7 +34,7 @@ namespace Iot.Device.Bmp180
         /// <param name="i2cDevice">I2C device used to communicate with the device</param>
         public Bmp180(I2cDevice i2cDevice)
         {
-            _i2cDevice = i2cDevice;
+            _i2cDevice = i2cDevice ?? throw new ArgumentNullException(nameof(i2cDevice));
             _calibrationData = new CalibrationData();
             // Read the coefficients table
             _calibrationData.ReadFromDevice(this);
@@ -43,10 +45,7 @@ namespace Iot.Device.Bmp180
         /// Sets sampling to the given value
         /// </summary>
         /// <param name="mode">Sampling Mode</param>
-        public void SetSampling(Sampling mode)
-        {
-            _mode = mode;
-        }
+        public void SetSampling(Sampling mode) => _mode = mode;
 
         /// <summary>
         ///  Reads the temperature from the sensor
@@ -54,10 +53,8 @@ namespace Iot.Device.Bmp180
         /// <returns>
         ///  Temperature in degrees celsius
         /// </returns>
-        public Temperature ReadTemperature()
-        {
-            return Temperature.FromDegreesCelsius((CalculateTrueTemperature() + 8) / 160.0);
-        }
+        [Telemetry("Temperature")]
+        public Temperature ReadTemperature() => Temperature.FromDegreesCelsius((CalculateTrueTemperature() + 8) / 160.0);
 
         /// <summary>
         ///  Reads the pressure from the sensor
@@ -65,6 +62,7 @@ namespace Iot.Device.Bmp180
         /// <returns>
         ///  Atmospheric pressure
         /// </returns>
+        [Telemetry("Pressure")]
         public Pressure ReadPressure()
         {
             // Pressure Calculations
@@ -92,10 +90,7 @@ namespace Iot.Device.Bmp180
         /// <returns>
         ///  Height above sea level
         /// </returns>
-        public Length ReadAltitude(Pressure seaLevelPressure)
-        {
-            return WeatherHelper.CalculateAltitude(ReadPressure(), seaLevelPressure, ReadTemperature());
-        }
+        public Length ReadAltitude(Pressure seaLevelPressure) => WeatherHelper.CalculateAltitude(ReadPressure(), seaLevelPressure, ReadTemperature());
 
         /// <summary>
         ///  Calculates the altitude in meters from the mean sea-level pressure.
@@ -103,10 +98,7 @@ namespace Iot.Device.Bmp180
         /// <returns>
         ///  Height in meters above sea level
         /// </returns>
-        public Length ReadAltitude()
-        {
-            return ReadAltitude(WeatherHelper.MeanSeaLevel);
-        }
+        public Length ReadAltitude() => ReadAltitude(WeatherHelper.MeanSeaLevel);
 
         /// <summary>
         ///  Calculates the pressure at sea level when given a known altitude
@@ -117,10 +109,7 @@ namespace Iot.Device.Bmp180
         /// <returns>
         ///  Pressure
         /// </returns>
-        public Pressure ReadSeaLevelPressure(Length altitude)
-        {
-            return WeatherHelper.CalculateSeaLevelPressure(ReadPressure(), altitude, ReadTemperature());
-        }
+        public Pressure ReadSeaLevelPressure(Length altitude) => WeatherHelper.CalculateSeaLevelPressure(ReadPressure(), altitude, ReadTemperature());
 
         /// <summary>
         ///  Calculates the pressure at sea level, when the current altitude is 0.
@@ -128,10 +117,7 @@ namespace Iot.Device.Bmp180
         /// <returns>
         ///  Pressure
         /// </returns>
-        public Pressure ReadSeaLevelPressure()
-        {
-            return ReadSeaLevelPressure(Length.Zero);
-        }
+        public Pressure ReadSeaLevelPressure() => ReadSeaLevelPressure(Length.Zero);
 
         /// <summary>
         ///  Calculate true temperature

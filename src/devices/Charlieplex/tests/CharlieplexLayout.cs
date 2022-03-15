@@ -1,6 +1,9 @@
-﻿using System;
-using Xunit;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
 using Iot.Device.Multiplexing;
+using Xunit;
 
 namespace Charlietests
 {
@@ -11,7 +14,7 @@ namespace Charlietests
         {
             var pins = new int[] { 1, 2 };
 
-            var nodes = CharlieplexSegment.GetNodes(pins);
+            CharlieplexSegmentNode[] nodes = CharlieplexSegment.GetNodes(pins);
             Assert.True(nodes.Length == 2);
             Assert.True(nodes[0].Anode == 1 && nodes[0].Cathode == 2);
             Assert.True(nodes[1].Anode == 2 && nodes[1].Cathode == 1);
@@ -22,7 +25,7 @@ namespace Charlietests
         {
             var pins = new int[] { 1, 2, 3 };
 
-            var nodes = CharlieplexSegment.GetNodes(pins);
+            CharlieplexSegmentNode[] nodes = CharlieplexSegment.GetNodes(pins);
             Assert.True(nodes.Length == 6);
             Assert.True(nodes[0].Anode == 1 && nodes[0].Cathode == 2);
             Assert.True(nodes[1].Anode == 2 && nodes[1].Cathode == 1);
@@ -36,7 +39,7 @@ namespace Charlietests
         public void FourPinLayout()
         {
             var pins = new int[] { 1, 2, 3, 4 };
-            var nodes = CharlieplexSegment.GetNodes(pins);
+            CharlieplexSegmentNode[] nodes = CharlieplexSegment.GetNodes(pins);
             Assert.True(true);
             Assert.True(nodes.Length == 12);
             Assert.True(nodes[0].Anode == 1 && nodes[0].Cathode == 2);
@@ -54,10 +57,27 @@ namespace Charlietests
         }
 
         [Fact]
+        public void FourPinLayoutLimitEight()
+        {
+            var pins = new int[] { 1, 2, 3, 4 };
+            CharlieplexSegmentNode[] nodes = CharlieplexSegment.GetNodes(pins, 8);
+            Assert.True(true);
+            Assert.True(nodes.Length == 8);
+            Assert.True(nodes[0].Anode == 1 && nodes[0].Cathode == 2);
+            Assert.True(nodes[1].Anode == 2 && nodes[1].Cathode == 1);
+            Assert.True(nodes[2].Anode == 2 && nodes[2].Cathode == 3);
+            Assert.True(nodes[3].Anode == 3 && nodes[3].Cathode == 2);
+            Assert.True(nodes[4].Anode == 3 && nodes[4].Cathode == 4);
+            Assert.True(nodes[5].Anode == 4 && nodes[5].Cathode == 3);
+            Assert.True(nodes[6].Anode == 1 && nodes[6].Cathode == 3);
+            Assert.True(nodes[7].Anode == 3 && nodes[7].Cathode == 1);
+        }
+
+        [Fact]
         public void FivePinLayout()
         {
             var pins = new int[] { 1, 2, 3, 4, 5 };
-            var nodes = CharlieplexSegment.GetNodes(pins);
+            CharlieplexSegmentNode[] nodes = CharlieplexSegment.GetNodes(pins);
             Assert.True(true);
             Assert.True(nodes.Length == 20);
             Assert.True(nodes[0].Anode == 1 && nodes[0].Cathode == 2);

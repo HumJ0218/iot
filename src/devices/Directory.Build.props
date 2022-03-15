@@ -2,16 +2,30 @@
   <Import Project="../../eng/Compilers.props" />
   <Import Project="../../eng/Versions.props" />
   <Import Project="../../eng/Analyzers.props" />
+  <Import Project="../../eng/Versions.external.props" />
   <PropertyGroup>
+    <!-- Most projects should use this value to build for all possible target frameworks -->
+    <DefaultBindingTfms>net6.0;netcoreapp3.1;netstandard2.0;</DefaultBindingTfms>
+    <DefaultSampleTfms>net6.0</DefaultSampleTfms>
     <NoWarn>$(NoWarn);CS8321</NoWarn>
     <DeterministicSourcePaths>false</DeterministicSourcePaths>
     <IsPackable>false</IsPackable>
     <MainLibraryPath>$(MSBuildThisFileDirectory)../System.Device.Gpio/</MainLibraryPath>
+    <SystemDeviceModelProjectName>System.Device.Model</SystemDeviceModelProjectName>
+    <SystemDeviceModelPath>$(MSBuildThisFileDirectory)$(SystemDeviceModelProjectName)/$(SystemDeviceModelProjectName).csproj</SystemDeviceModelPath>
+    <CommonProjectName>Common</CommonProjectName>
+    <CommonProjectPath>$(MSBuildThisFileDirectory)$(CommonProjectName)/$(CommonProjectName).csproj</CommonProjectPath>
     <LangVersion>9</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="UnitsNet" Version="$(UnitsNetPackageVersion)" />
+  <ItemGroup Condition="'$(MSBuildProjectName)' != '$(CommonProjectName)' AND '$(MSBuildProjectName)' != '$(SystemDeviceModelProjectName)'">
+  <!-- These projects are included into every binding. They must not depend on each other, or we get a circular dependency -->
+    <ProjectReference Include="$(SystemDeviceModelPath)" />
+    <ProjectReference Include="$(CommonProjectPath)"  />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(MainLibraryPath)System.Device.Gpio.csproj" />
+  </ItemGroup>
+
 </Project>

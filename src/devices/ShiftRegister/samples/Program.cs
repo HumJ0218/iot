@@ -10,10 +10,10 @@ using Iot.Device.Multiplexing;
 using ShiftRegister sr = new ShiftRegister(ShiftRegisterPinMapping.Complete, 8);
 
 // Uncomment this code to use SPI (and comment the line above)
-// SpiConnectionSettings settings = new (0, 0);
+// SpiConnectionSettings settings = new(0, 0);
 // using var spiDevice = SpiDevice.Create(settings);
-// var sr = new Sn74hc595(spiDevice, Sn74hc595.PinMapping.Standard);
-CancellationTokenSource cancellationSource = new ();
+// using ShiftRegister sr = new(spiDevice, 8);
+CancellationTokenSource cancellationSource = new();
 Console.CancelKeyPress += (s, e) =>
 {
     e.Cancel = true;
@@ -22,7 +22,7 @@ Console.CancelKeyPress += (s, e) =>
 
 Console.WriteLine($"Driver for {nameof(ShiftRegister)}");
 Console.WriteLine($"Register bit length: {sr.BitLength}");
-var interfaceType = sr.UsesSpi ? "SPI" : "GPIO";
+string interfaceType = sr.UsesSpi ? "SPI" : "GPIO";
 Console.WriteLine($"Using {interfaceType}");
 
 sr.OutputEnable = true;
@@ -146,8 +146,7 @@ void BinaryCounter(ShiftRegister sr, CancellationTokenSource cancellationSource)
         for (int i = 256; i < 4096; i++)
         {
             ShiftBytes(sr, i);
-            Thread.Sleep(25);
-            sr.ShiftClear();
+            Thread.Sleep(20);
 
             if (IsCanceled(sr, cancellationSource))
             {
@@ -163,14 +162,14 @@ void ShiftBytes(ShiftRegister sr, int value)
 {
     if (sr.BitLength > 32)
     {
-        throw new ArgumentException($"{nameof(ShiftBytes)}: bit length must be  8-32.");
+        throw new Exception($"{nameof(ShiftBytes)}: bit length must be  8-32.");
     }
 
     for (int i = (sr.BitLength / 8) - 1; i > 0; i--)
     {
         int shift = i * 8;
         int downShiftedValue = value >> shift;
-        sr.ShiftByte((byte)downShiftedValue);
+        sr.ShiftByte((byte)downShiftedValue, false);
     }
 
     sr.ShiftByte((byte)value);

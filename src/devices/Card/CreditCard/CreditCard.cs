@@ -5,9 +5,9 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using Iot.Device.Common;
+using Microsoft.Extensions.Logging;
 
 namespace Iot.Device.Card.CreditCardProcessing
 {
@@ -36,6 +36,7 @@ namespace Iot.Device.Card.CreditCardProcessing
         private CardTransceiver _nfc;
         private bool _alreadyReadSfi = false;
         private byte _target;
+        private ILogger _logger;
 
         /// <summary>
         /// The size of the tailer elements. Some readers add an extra byte
@@ -68,6 +69,7 @@ namespace Iot.Device.Card.CreditCardProcessing
             Tags = new List<Tag>();
             LogEntries = new List<byte[]>();
             TailerSize = tailerSize;
+            _logger = this.GetCurrentClassLogger();
         }
 
         /// <summary>
@@ -79,7 +81,7 @@ namespace Iot.Device.Card.CreditCardProcessing
         {
             if ((issuerAuthenticationData.Length < 8) || (issuerAuthenticationData.Length > 16))
             {
-                throw new ArgumentException($"{nameof(issuerAuthenticationData)} needs to be more than 8 and less than 16 length");
+                throw new ArgumentException(nameof(issuerAuthenticationData), "Data needs to be more than 8 and less than 16 bytes length");
             }
 
             Span<byte> toSend = stackalloc byte[5 + issuerAuthenticationData.Length];
@@ -113,7 +115,7 @@ namespace Iot.Device.Card.CreditCardProcessing
         {
             if (unpredictableNumber.Length < 8)
             {
-                throw new ArgumentException($"{nameof(GetChallenge)}: {nameof(unpredictableNumber)} has to be at least 8 byte long.");
+                throw new ArgumentException(nameof(unpredictableNumber), "Data has to be at least 8 bytes long.");
             }
 
             Span<byte> toSend = stackalloc byte[5];
@@ -142,7 +144,7 @@ namespace Iot.Device.Card.CreditCardProcessing
             // Pin can only be 4 to C length
             if ((pindigits.Length < 0x04) && (pindigits.Length > 0x0C))
             {
-                throw new ArgumentException($"{nameof(VerifyPin)}: {nameof(pindigits)} can only be between 4 and 12 digits");
+                throw new ArgumentException(nameof(pindigits), "Data can only be between 4 and 12 digits");
             }
 
             // Encode the pin
@@ -258,7 +260,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                 // If it is a template or composed, then we need to split it
                 if ((TagList.Tags.Where(m => m.TagNumber == tag.TagNumber).FirstOrDefault()?.IsTemplate == true) || tag.IsConstructed)
                 {
-                    if (tag.Tags == null)
+                    if (tag.Tags is null)
                     {
                         tag.Tags = new List<Tag>();
                     }
@@ -271,7 +273,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                 // Of the object
                 if (TagList.Tags.Where(m => m.TagNumber == tag.TagNumber).FirstOrDefault()?.IsDol == true)
                 {
-                    if (tag.Tags == null)
+                    if (tag.Tags is null)
                     {
                         tag.Tags = new List<Tag>();
                     }
@@ -335,7 +337,7 @@ namespace Iot.Device.Card.CreditCardProcessing
 
             // Search for all tags with entries
             var entries = Tag.SearchTag(Tags, 0x9F4D).FirstOrDefault();
-            if (entries != null)
+            if (entries is object)
             {
                 // SFI entries is first byte and number of records is second one
                 ReadLogEntries(entries.Data[0], entries.Data[1]);
@@ -354,7 +356,7 @@ namespace Iot.Device.Card.CreditCardProcessing
             List<Tag> appTemplates = Tag.SearchTag(Tags, 0x61);
             if (appTemplates.Count > 0)
             {
-                LogInfo.Log($"Number of App Templates: {appTemplates.Count}", LogLevel.Debug);
+                _logger.LogDebug($"Number of App Templates: {appTemplates.Count}");
                 foreach (var app in appTemplates)
                 {
                     // Find the Application Identifier 0x4F
@@ -363,28 +365,28 @@ namespace Iot.Device.Card.CreditCardProcessing
                     Tag? appPriotity = Tag.SearchTag(app.Tags, 0x87).FirstOrDefault();
                     // As it is not mandatory, some cards will have only 1
                     // application and this may not be present
-                    if (appPriotity == null)
+                    if (appPriotity is null)
                     {
                         appPriotity = new Tag() { Data = new byte[1] { 0 } };
                     }
 
                     // do we have a PDOL tag 0x9F38
-                    LogInfo.Log($"APPID: {BitConverter.ToString(appIdentifier.Data)}, Priority: {appPriotity.Data[0]}", LogLevel.Debug);
+                    _logger.LogDebug($"APPID: {BitConverter.ToString(appIdentifier.Data)}, Priority: {appPriotity.Data[0]}");
                     var ret = Select(appIdentifier.Data);
                     if (ret == ErrorType.ProcessCompletedNormal)
                     {
                         // We need to select the Template 0x6F where the Tag 0x84 contains the same App Id and where we have a template A5 attached.
                         var templates = Tags
                             .Where(m => m.TagNumber == 0x6F)
-                            .Where(m => m.Tags.Where(t => t.TagNumber == 0x84).Where(t => t.Data.SequenceEqual(appIdentifier.Data)) != null)
-                            .Where(m => m.Tags.Where(t => t.TagNumber == 0xA5) != null);
+                            .Where(m => m.Tags.Where(t => t.TagNumber == 0x84).Where(t => t.Data.SequenceEqual(appIdentifier.Data)) is object)
+                            .Where(m => m.Tags.Where(t => t.TagNumber == 0xA5) is object);
                         // Only here we may find a PDOL tag 0X9F38
                         Tag? pdol = null;
                         foreach (var temp in templates)
                         {
                             // We are sure to have 0xA5, so select it and search for PDOL
                             pdol = Tag.SearchTag(temp.Tags, 0xA5).FirstOrDefault()?.Tags.Where(m => m.TagNumber == 0x9F38).FirstOrDefault();
-                            if (pdol != null)
+                            if (pdol is object)
                             {
                                 break;
                             }
@@ -393,7 +395,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                         Span<byte> received = new byte[260];
                         byte sumDol = 0;
                         // Do we have a PDOL?
-                        if (pdol != null)
+                        if (pdol is object)
                         {
                             // So we need to send as may bytes as it request
                             foreach (var dol in pdol.Tags)
@@ -410,7 +412,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                         // If we have a PDOL, then we need to fill it properly
                         // Some fields are mandatory
                         int index = 2;
-                        if (pdol != null)
+                        if (pdol is object)
                         {
                             foreach (var dol in pdol.Tags)
                             {
@@ -481,7 +483,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                             }
                         }
 
-                        if ((ret == ErrorType.ProcessCompletedNormal) && (appLocator != null))
+                        if ((ret == ErrorType.ProcessCompletedNormal) && (appLocator is object))
                         {
                             // Now decode the appLocator
                             // Format is SFI - start - stop - number of records
@@ -504,7 +506,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                                 for (byte record = detail.Start; record < detail.End + 1; record++)
                                 {
                                     ret = ReadRecord(detail.Sfi, record);
-                                    LogInfo.Log($"Read record {record}, SFI {detail.Sfi}, status: {ret}", LogLevel.Debug);
+                                    _logger.LogDebug($"Read record {record}, SFI {detail.Sfi}, status: {ret}");
                                 }
 
                             }
@@ -522,7 +524,7 @@ namespace Iot.Device.Card.CreditCardProcessing
                                 for (byte sfi = 1; sfi < 11; sfi++)
                                 {
                                     ret = ReadRecord(sfi, record);
-                                    LogInfo.Log($"Read record {record}, SFI {sfi}, status: {ret}", LogLevel.Debug);
+                                    _logger.LogDebug($"Read record {record}, SFI {sfi}, status: {ret}");
                                 }
                             }
 
@@ -543,13 +545,13 @@ namespace Iot.Device.Card.CreditCardProcessing
             {
                 // It's the old way, so looking for tag 0x88
                 var appSfi = Tag.SearchTag(Tags, 0x88).FirstOrDefault();
-                if (appSfi != null)
+                if (appSfi is object)
                 {
-                    LogInfo.Log($"AppSFI: {appSfi.Data[0]}", LogLevel.Debug);
+                    _logger.LogDebug($"AppSFI: {appSfi.Data[0]}");
                     for (byte record = 1; record < 10; record++)
                     {
                         var ret = ReadRecord(appSfi.Data[0], record);
-                        LogInfo.Log($"Read record {record}, SFI {appSfi.Data[0]}, status: {ret}", LogLevel.Debug);
+                        _logger.LogDebug($"Read record {record}, SFI {appSfi.Data[0]}, status: {ret}");
                     }
 
                     _alreadyReadSfi = true;
@@ -567,7 +569,7 @@ namespace Iot.Device.Card.CreditCardProcessing
             for (byte record = 1; record < numberOfRecords + 1; record++)
             {
                 var ret = ReadRecord(sfi, record, true);
-                LogInfo.Log($"Read record {record}, SFI {sfi},status: {ret}", LogLevel.Debug);
+                _logger.LogDebug($"Read record {record}, SFI {sfi},status: {ret}");
             }
         }
 
@@ -718,11 +720,11 @@ namespace Iot.Device.Card.CreditCardProcessing
                 }
 
                 FillTagList(Tags, received.Slice(0, ret - TailerSize));
-                LogInfo.Log($"{BitConverter.ToString(received.Slice(0, ret).ToArray())}", LogLevel.Debug);
+                _logger.LogDebug($"{BitConverter.ToString(received.Slice(0, ret).ToArray())}");
                 var ber = new BerSplitter(received.Slice(0, ret - TailerSize));
                 foreach (var b in ber.Tags)
                 {
-                    LogInfo.Log($"DataType: {dataType}, Tag: {b.TagNumber.ToString("X4")}, Data: {BitConverter.ToString(b.Data)}", LogLevel.Debug);
+                    _logger.LogDebug($"DataType: {dataType}, Tag: {b.TagNumber.ToString("X4")}, Data: {BitConverter.ToString(b.Data)}");
                 }
 
                 return new ProcessError(received.Slice(ret - TailerSize)).ErrorType;

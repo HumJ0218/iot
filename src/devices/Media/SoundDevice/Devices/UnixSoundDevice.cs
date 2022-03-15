@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Iot.Device.Media
 {
@@ -15,15 +16,19 @@ namespace Iot.Device.Media
     /// </summary>
     internal class UnixSoundDevice : SoundDevice
     {
+        private static readonly object s_playbackInitializationLock = new object();
+        private static readonly object s_recordingInitializationLock = new object();
+        private static readonly object s_mixerInitializationLock = new object();
+
         private IntPtr _playbackPcm;
         private IntPtr _recordingPcm;
         private IntPtr _mixer;
         private IntPtr _elem;
         private int _errorNum;
 
-        private static readonly object s_playbackInitializationLock = new object();
-        private static readonly object s_recordingInitializationLock = new object();
-        private static readonly object s_mixerInitializationLock = new object();
+        private uint _recordingTotalTimeSeconds;
+        private bool _record;
+        private Thread? _recordingThread;
 
         /// <summary>
         /// The connection settings of the sound device.
@@ -61,7 +66,11 @@ namespace Iot.Device.Media
         /// <summary>
         /// The recording volume of the sound device.
         /// </summary>
-        public override long RecordingVolume { get => GetRecordingVolume(); set => SetRecordingVolume(value); }
+        public override long RecordingVolume
+        {
+            get => GetRecordingVolume();
+            set => SetRecordingVolume(value);
+        }
 
         private bool _recordingMute;
 
@@ -82,12 +91,17 @@ namespace Iot.Device.Media
         /// Initializes a new instance of the <see cref="UnixSoundDevice"/> class that will use the specified settings to communicate with the sound device.
         /// </summary>
         /// <param name="settings">The connection settings of a sound device.</param>
-        public UnixSoundDevice(SoundConnectionSettings settings)
+        /// <param name="unmute">Unmute the device if true</param>
+        /// <remarks>Some device do not support to be unmuted, if you try so, it will raise an exception and dispose the device. In this case, you should set the unmute parameter to false</remarks>
+        public UnixSoundDevice(SoundConnectionSettings settings, bool unmute = true)
         {
             Settings = settings;
 
-            PlaybackMute = false;
-            RecordingMute = false;
+            if (unmute)
+            {
+                PlaybackMute = false;
+                RecordingMute = false;
+            }
         }
 
         /// <summary>
@@ -131,9 +145,10 @@ namespace Iot.Device.Media
         /// <param name="outputFilePath">Recording save path.</param>
         public override void Record(uint recordTimeSeconds, string outputFilePath)
         {
-            using FileStream fs = File.Open(outputFilePath, FileMode.Create);
-
-            Record(recordTimeSeconds, fs);
+            using (FileStream fs = File.Open(outputFilePath, FileMode.Create))
+            {
+                Record(recordTimeSeconds, fs);
+            }
         }
 
         /// <summary>
@@ -146,6 +161,24 @@ namespace Iot.Device.Media
             IntPtr @params = new IntPtr();
             int dir = 0;
 
+            var header = CreateHeader(recordTimeSeconds);
+
+            WriteWavHeader(outputStream, header);
+            try
+            {
+                OpenRecordingPcm();
+                PcmInitialize(_recordingPcm, header, ref @params, ref dir);
+                ReadStream(outputStream, header, ref @params, ref dir);
+                CloseRecordingPcm();
+            }
+            finally
+            {
+                // We won't do anything on purpose
+            }
+        }
+
+        private WavHeader CreateHeader(uint recordTimeSeconds)
+        {
             WavHeaderChunk chunk = new WavHeaderChunk
             {
                 ChunkId = new[] { 'R', 'I', 'F', 'F' },
@@ -176,70 +209,109 @@ namespace Iot.Device.Media
                 SubChunk2 = subChunk2
             };
 
-            WriteWavHeader(outputStream, header);
-
-            try
-            {
-                OpenRecordingPcm();
-                PcmInitialize(_recordingPcm, header, ref @params, ref dir);
-                ReadStream(outputStream, header, ref @params, ref dir);
-                CloseRecordingPcm();
-            }
-            finally
-            {
-                Dispose();
-            }
+            return header;
         }
 
-        private void WriteWavHeader(Stream wavStream, WavHeader header)
+        public override void StartRecording(string outputFilePath)
         {
-            Span<byte> writeBuffer2 = stackalloc byte[2];
-            Span<byte> writeBuffer4 = stackalloc byte[4];
+            Record(outputFilePath);
+        }
 
-            Encoding.ASCII.GetBytes(header.Chunk.ChunkId, writeBuffer4);
-            wavStream.Write(writeBuffer4);
+        public override void StopRecording()
+        {
+            _record = false;
+            _recordingThread!.Join();
+        }
+
+        private void Record(string outputFilePath)
+        {
+            _recordingThread = new Thread(() =>
+            {
+                IntPtr @params = new IntPtr();
+                int dir = 0;
+                _recordingTotalTimeSeconds = 0;
+                var header = CreateHeader(1);
+                using (var recordingFile = File.Open(outputFilePath, FileMode.Create))
+                {
+                    try
+                    {
+                        OpenRecordingPcm();
+                        PcmInitialize(_recordingPcm, header, ref @params, ref dir);
+                        _record = true;
+                        while (_record)
+                        {
+                            _recordingTotalTimeSeconds++;
+                            ReadStream(recordingFile, header, ref @params, ref dir);
+                        }
+
+                        CloseRecordingPcm();
+                    }
+                    finally
+                    {
+                        Dispose();
+                    }
+
+                    // Write header with total time
+                    header = CreateHeader(_recordingTotalTimeSeconds);
+                    recordingFile.Position = 0;
+                    WriteWavHeader(recordingFile, header);
+                    recordingFile.Flush();
+                    recordingFile.Close();
+                    recordingFile.Dispose();
+                }
+            });
+            _recordingThread.Start();
+        }
+
+        public override void WriteWavHeader(Stream wavStream, WavHeader header)
+        {
+            byte[] writeBuffer2 = new byte[2];
+            byte[] writeBuffer4 = new byte[4];
+
+            writeBuffer4 = Encoding.ASCII.GetBytes(header.Chunk.ChunkId);
+            wavStream.Write(writeBuffer4, 0, 4);
 
             BinaryPrimitives.WriteUInt32LittleEndian(writeBuffer4, header.Chunk.ChunkSize);
-            wavStream.Write(writeBuffer4);
+            wavStream.Write(writeBuffer4, 0, 4);
 
-            Encoding.ASCII.GetBytes(header.Format, writeBuffer4);
-            wavStream.Write(writeBuffer4);
+            writeBuffer4 = Encoding.ASCII.GetBytes(header.Format);
+            wavStream.Write(writeBuffer4, 0, 4);
 
-            Encoding.ASCII.GetBytes(header.SubChunk1.ChunkId, writeBuffer4);
-            wavStream.Write(writeBuffer4);
+            writeBuffer4 = Encoding.ASCII.GetBytes(header.SubChunk1.ChunkId);
+            wavStream.Write(writeBuffer4, 0, 4);
 
             BinaryPrimitives.WriteUInt32LittleEndian(writeBuffer4, header.SubChunk1.ChunkSize);
-            wavStream.Write(writeBuffer4);
+            wavStream.Write(writeBuffer4, 0, 4);
 
             BinaryPrimitives.WriteUInt16LittleEndian(writeBuffer2, header.AudioFormat);
-            wavStream.Write(writeBuffer2);
+            wavStream.Write(writeBuffer2, 0, 2);
 
             BinaryPrimitives.WriteUInt16LittleEndian(writeBuffer2, header.NumChannels);
-            wavStream.Write(writeBuffer2);
+            wavStream.Write(writeBuffer2, 0, 2);
 
             BinaryPrimitives.WriteUInt32LittleEndian(writeBuffer4, header.SampleRate);
-            wavStream.Write(writeBuffer4);
+            wavStream.Write(writeBuffer4, 0, 4);
 
             BinaryPrimitives.WriteUInt32LittleEndian(writeBuffer4, header.ByteRate);
-            wavStream.Write(writeBuffer4);
+            wavStream.Write(writeBuffer4, 0, 4);
 
             BinaryPrimitives.WriteUInt16LittleEndian(writeBuffer2, header.BlockAlign);
-            wavStream.Write(writeBuffer2);
+            wavStream.Write(writeBuffer2, 0, 2);
 
             BinaryPrimitives.WriteUInt16LittleEndian(writeBuffer2, header.BitsPerSample);
-            wavStream.Write(writeBuffer2);
+            wavStream.Write(writeBuffer2, 0, 2);
 
-            Encoding.ASCII.GetBytes(header.SubChunk2.ChunkId, writeBuffer4);
-            wavStream.Write(writeBuffer4);
+            writeBuffer4 = Encoding.ASCII.GetBytes(header.SubChunk2.ChunkId);
+            wavStream.Write(writeBuffer4, 0, 4);
 
             BinaryPrimitives.WriteUInt32LittleEndian(writeBuffer4, header.SubChunk2.ChunkSize);
-            wavStream.Write(writeBuffer4);
+            wavStream.Write(writeBuffer4, 0, 4);
         }
 
         private WavHeader ReadWavHeader(Stream wavStream)
         {
-            Span<byte> readBuffer2 = stackalloc byte[2];
-            Span<byte> readBuffer4 = stackalloc byte[4];
+            byte[] readBuffer2 = new byte[2];
+            byte[] readBuffer4 = new byte[4];
 
             WavHeaderChunk chunk = new WavHeaderChunk();
             WavHeaderChunk subChunk1 = new WavHeaderChunk();
@@ -247,43 +319,43 @@ namespace Iot.Device.Media
 
             WavHeader header = new WavHeader();
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             chunk.ChunkId = Encoding.ASCII.GetString(readBuffer4).ToCharArray();
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             chunk.ChunkSize = BinaryPrimitives.ReadUInt32LittleEndian(readBuffer4);
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             header.Format = Encoding.ASCII.GetString(readBuffer4).ToCharArray();
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             subChunk1.ChunkId = Encoding.ASCII.GetString(readBuffer4).ToCharArray();
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             subChunk1.ChunkSize = BinaryPrimitives.ReadUInt32LittleEndian(readBuffer4);
 
-            wavStream.Read(readBuffer2);
+            wavStream.Read(readBuffer2, 0, readBuffer2.Length);
             header.AudioFormat = BinaryPrimitives.ReadUInt16LittleEndian(readBuffer2);
 
-            wavStream.Read(readBuffer2);
+            wavStream.Read(readBuffer2, 0, readBuffer2.Length);
             header.NumChannels = BinaryPrimitives.ReadUInt16LittleEndian(readBuffer2);
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             header.SampleRate = BinaryPrimitives.ReadUInt32LittleEndian(readBuffer4);
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             header.ByteRate = BinaryPrimitives.ReadUInt32LittleEndian(readBuffer4);
 
-            wavStream.Read(readBuffer2);
+            wavStream.Read(readBuffer2, 0, readBuffer2.Length);
             header.BlockAlign = BinaryPrimitives.ReadUInt16LittleEndian(readBuffer2);
 
-            wavStream.Read(readBuffer2);
+            wavStream.Read(readBuffer2, 0, readBuffer2.Length);
             header.BitsPerSample = BinaryPrimitives.ReadUInt16LittleEndian(readBuffer2);
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             subChunk2.ChunkId = Encoding.ASCII.GetString(readBuffer4).ToCharArray();
 
-            wavStream.Read(readBuffer4);
+            wavStream.Read(readBuffer4, 0, readBuffer4.Length);
             subChunk2.ChunkSize = BinaryPrimitives.ReadUInt32LittleEndian(readBuffer4);
 
             header.Chunk = chunk;
@@ -309,7 +381,7 @@ namespace Iot.Device.Media
 
             fixed (byte* buffer = readBuffer)
             {
-                while (wavStream.Read(readBuffer) != 0)
+                while (wavStream.Read(readBuffer, 0, readBuffer.Length) != 0)
                 {
                     _errorNum = Interop.snd_pcm_writei(_playbackPcm, (IntPtr)buffer, frames);
                     ThrowIfError("Can not write data to the device.");
@@ -337,7 +409,7 @@ namespace Iot.Device.Media
                     _errorNum = Interop.snd_pcm_readi(_recordingPcm, (IntPtr)buffer, frames);
                     ThrowIfError("Can not read data from the device.");
 
-                    outputStream.Write(readBuffer);
+                    outputStream.Write(readBuffer, 0, readBuffer.Length);
                 }
             }
 
@@ -352,14 +424,14 @@ namespace Iot.Device.Media
             _errorNum = Interop.snd_pcm_hw_params_any(pcm, @params);
             ThrowIfError("Can not fill parameters object.");
 
-            _errorNum = Interop.snd_pcm_hw_params_set_access(pcm, @params, snd_pcm_access_t.SND_PCM_ACCESS_RW_INTERLEAVED);
+            _errorNum = Interop.snd_pcm_hw_params_set_access(pcm, @params, Interop.snd_pcm_access_t.SND_PCM_ACCESS_RW_INTERLEAVED);
             ThrowIfError("Can not set access mode.");
 
             _errorNum = (int)(header.BitsPerSample / 8) switch
             {
-                1 => Interop.snd_pcm_hw_params_set_format(pcm, @params, snd_pcm_format_t.SND_PCM_FORMAT_U8),
-                2 => Interop.snd_pcm_hw_params_set_format(pcm, @params, snd_pcm_format_t.SND_PCM_FORMAT_S16_LE),
-                3 => Interop.snd_pcm_hw_params_set_format(pcm, @params, snd_pcm_format_t.SND_PCM_FORMAT_S24_LE),
+                1 => Interop.snd_pcm_hw_params_set_format(pcm, @params, Interop.snd_pcm_format_t.SND_PCM_FORMAT_U8),
+                2 => Interop.snd_pcm_hw_params_set_format(pcm, @params, Interop.snd_pcm_format_t.SND_PCM_FORMAT_S16_LE),
+                3 => Interop.snd_pcm_hw_params_set_format(pcm, @params, Interop.snd_pcm_format_t.SND_PCM_FORMAT_S24_LE),
                 _ => throw new Exception("Bits per sample error. Please reset the value of RecordingBitsPerSample."),
             };
             ThrowIfError("Can not set format.");
@@ -384,8 +456,8 @@ namespace Iot.Device.Media
 
             // The snd_mixer_selem_set_playback_volume_all method in Raspberry Pi is invalid.
             // So here we adjust the volume by setting the left and right channels separately.
-            _errorNum = Interop.snd_mixer_selem_set_playback_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, volume);
-            _errorNum = Interop.snd_mixer_selem_set_playback_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, volume);
+            _errorNum = Interop.snd_mixer_selem_set_playback_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, volume);
+            _errorNum = Interop.snd_mixer_selem_set_playback_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, volume);
             ThrowIfError("Set playback volume error.");
 
             CloseMixer();
@@ -397,8 +469,8 @@ namespace Iot.Device.Media
 
             OpenMixer();
 
-            _errorNum = Interop.snd_mixer_selem_get_playback_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, &volumeLeft);
-            _errorNum = Interop.snd_mixer_selem_get_playback_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, &volumeRight);
+            _errorNum = Interop.snd_mixer_selem_get_playback_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, &volumeLeft);
+            _errorNum = Interop.snd_mixer_selem_get_playback_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, &volumeRight);
             ThrowIfError("Get playback volume error.");
 
             CloseMixer();
@@ -410,8 +482,8 @@ namespace Iot.Device.Media
         {
             OpenMixer();
 
-            _errorNum = Interop.snd_mixer_selem_set_capture_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, volume);
-            _errorNum = Interop.snd_mixer_selem_set_capture_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, volume);
+            _errorNum = Interop.snd_mixer_selem_set_capture_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, volume);
+            _errorNum = Interop.snd_mixer_selem_set_capture_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, volume);
             ThrowIfError("Set recording volume error.");
 
             CloseMixer();
@@ -423,8 +495,8 @@ namespace Iot.Device.Media
 
             OpenMixer();
 
-            _errorNum = Interop.snd_mixer_selem_get_capture_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, &volumeLeft);
-            _errorNum = Interop.snd_mixer_selem_get_capture_volume(_elem, snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, &volumeRight);
+            _errorNum = Interop.snd_mixer_selem_get_capture_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_LEFT, &volumeLeft);
+            _errorNum = Interop.snd_mixer_selem_get_capture_volume(_elem, Interop.snd_mixer_selem_channel_id.SND_MIXER_SCHN_FRONT_RIGHT, &volumeRight);
             ThrowIfError("Get recording volume error.");
 
             CloseMixer();
@@ -461,7 +533,7 @@ namespace Iot.Device.Media
 
             lock (s_playbackInitializationLock)
             {
-                _errorNum = Interop.snd_pcm_open(out _playbackPcm, Settings.PlaybackDeviceName, snd_pcm_stream_t.SND_PCM_STREAM_PLAYBACK, 0);
+                _errorNum = Interop.snd_pcm_open(out _playbackPcm, Settings.PlaybackDeviceName, Interop.snd_pcm_stream_t.SND_PCM_STREAM_PLAYBACK, 0);
                 ThrowIfError("Can not open playback device.");
             }
         }
@@ -489,7 +561,7 @@ namespace Iot.Device.Media
 
             lock (s_recordingInitializationLock)
             {
-                _errorNum = Interop.snd_pcm_open(out _recordingPcm, Settings.RecordingDeviceName, snd_pcm_stream_t.SND_PCM_STREAM_CAPTURE, 0);
+                _errorNum = Interop.snd_pcm_open(out _recordingPcm, Settings.RecordingDeviceName, Interop.snd_pcm_stream_t.SND_PCM_STREAM_CAPTURE, 0);
                 ThrowIfError("Can not open recording device.");
             }
         }

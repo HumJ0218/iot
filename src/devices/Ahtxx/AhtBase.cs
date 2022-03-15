@@ -3,6 +3,7 @@
 
 using System;
 using System.Device.I2c;
+using System.Device.Model;
 using System.Threading;
 using UnitsNet;
 
@@ -11,6 +12,7 @@ namespace Iot.Device.Ahtxx
     /// <summary>
     ///  Base class for common functions of the AHT10/15 and AHT20 sensors.
     /// </summary>
+    [Interface("AHTxx temperature and humidity sensor")]
     public abstract class AhtBase : IDisposable
     {
         /// <summary>
@@ -50,6 +52,7 @@ namespace Iot.Device.Ahtxx
         /// Reading the temperature takes between 10 ms and 80 ms.
         /// </summary>
         /// <returns>Temperature reading</returns>
+        [Telemetry("Temperature")]
         public Temperature GetTemperature()
         {
             Measure();
@@ -61,10 +64,11 @@ namespace Iot.Device.Ahtxx
         /// Reading the humidity takes between 10 ms and 80 ms.
         /// </summary>
         /// <returns>Relative humidity reading</returns>
-        public Ratio GetHumidity()
+        [Telemetry("Humidity")]
+        public RelativeHumidity GetHumidity()
         {
             Measure();
-            return Ratio.FromPercent(_humidity);
+            return RelativeHumidity.FromPercent(_humidity);
         }
 
         /// <summary>
@@ -134,27 +138,17 @@ namespace Iot.Device.Ahtxx
         private byte GetStatus()
         {
             _i2cDevice.WriteByte(0x71);
-            // whithout this delay the reading the status fails often.
+            // without this delay the reading the status fails often.
             Thread.Sleep(10);
-            byte status = _i2cDevice.ReadByte();
-            return status;
+            return _i2cDevice.ReadByte();
         }
 
-        private bool IsBusy()
-        {
-            return (GetStatus() & (byte)StatusBit.Busy) == (byte)StatusBit.Busy;
-        }
+        private bool IsBusy() => (GetStatus() & (byte)StatusBit.Busy) == (byte)StatusBit.Busy;
 
-        private bool IsCalibrated()
-        {
-            return (GetStatus() & (byte)StatusBit.Calibrated) == (byte)StatusBit.Calibrated;
-        }
+        private bool IsCalibrated() => (GetStatus() & (byte)StatusBit.Calibrated) == (byte)StatusBit.Calibrated;
 
         /// <inheritdoc cref="IDisposable" />
-        public void Dispose() => Dispose(true);
-
-        /// <inheritdoc cref="IDisposable" />
-        protected virtual void Dispose(bool disposing)
+        public void Dispose()
         {
             _i2cDevice?.Dispose();
             _i2cDevice = null!;

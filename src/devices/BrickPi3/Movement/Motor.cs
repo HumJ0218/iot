@@ -58,7 +58,7 @@ namespace Iot.Device.BrickPi3.Movement
         /// <param name="speed">speed is between -255 and +255</param>
         public void SetSpeed(int speed)
         {
-            speed = Math.Clamp(speed, -255, 255);
+            speed = MathExtensions.Clamp(speed, -255, 255);
             _brick.SetMotorPower((byte)Port, speed);
             OnPropertyChanged(nameof(Speed));
         }
@@ -110,19 +110,11 @@ namespace Iot.Device.BrickPi3.Movement
                 var motorstatus = _brick.GetMotorStatus((byte)Port);
                 switch (polarity)
                 {
-                    case Polarity.Backward:
-                        if (motorstatus.Speed > 0)
-                        {
-                            _brick.SetMotorPower((byte)Port, -Speed);
-                        }
-
+                    case Polarity.Backward when motorstatus.Speed > 0:
+                        _brick.SetMotorPower((byte)Port, -Speed);
                         break;
-                    case Polarity.Forward:
-                        if (motorstatus.Speed < 0)
-                        {
-                            _brick.SetMotorPower((byte)Port, -Speed);
-                        }
-
+                    case Polarity.Forward when motorstatus.Speed < 0:
+                        _brick.SetMotorPower((byte)Port, -Speed);
                         break;
                     case Polarity.OppositeDirection:
                         _brick.SetMotorPower((byte)Port, -Speed);

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks>$(DefaultBindingTfms)</TargetFrameworks>
     <EnableDefaultItems>false</EnableDefaultItems>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -11,7 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../Interop/**/*.cs" />
     <Compile Include="VideoDevice/*.cs" />
     <Compile Include="VideoDevice/Devices/*.cs" />
     <Compile Include="SoundDevice/*.cs" />

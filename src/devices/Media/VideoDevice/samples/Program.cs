@@ -6,7 +6,7 @@ using System.Drawing;
 using System.IO;
 using Iot.Device.Media;
 
-VideoConnectionSettings settings = new VideoConnectionSettings(0, (2560, 1920), PixelFormat.JPEG);
+VideoConnectionSettings settings = new(0, (2560, 1920), PixelFormat.JPEG);
 using VideoDevice device = VideoDevice.Create(settings);
 
 // Get the supported formats of the device
@@ -20,7 +20,7 @@ Console.WriteLine();
 // Get the resolutions of the format
 foreach (var resolution in device.GetPixelFormatResolutions(PixelFormat.YUYV))
 {
-    Console.Write($"{resolution.Width}x{resolution.Height} ");
+    Console.Write($"[{resolution.MinWidth}x{resolution.MinHeight}]->[{resolution.MaxWidth}x{resolution.MaxHeight}], Step [{resolution.StepWidth},{resolution.StepHeight}] ");
 }
 
 Console.WriteLine();
@@ -38,6 +38,7 @@ device.Capture($"{path}/jpg_direct_output.jpg");
 device.Settings.PixelFormat = PixelFormat.YUV420;
 
 // Convert pixel format
-Color[] colors = VideoDevice.Yv12ToRgb(device.Capture(), settings.CaptureSize);
+using var stream = new MemoryStream(device.Capture());
+Color[] colors = VideoDevice.Yv12ToRgb(stream, settings.CaptureSize);
 Bitmap bitmap = VideoDevice.RgbToBitmap(settings.CaptureSize, colors);
 bitmap.Save($"{path}/yuyv_to_jpg.jpg", System.Drawing.Imaging.ImageFormat.Jpeg);

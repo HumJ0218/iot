@@ -22,18 +22,18 @@ string weatherKey = "Please request a key from openweathermap.org";
 
 CityData[] citiesData = new CityData[]
 {
-    new CityData("New York", "US", "America/New_York"),
-    new CityData("Redmond", "US", "America/Los_Angeles"),
-    new CityData("Toronto", "CA", "America/Toronto"),
-    new CityData("Mexico", "MX", "America/Mexico_City"),
-    new CityData("Madrid", "ES", "Europe/Madrid"),
-    new CityData("London", "UK", "Europe/London"),
-    new CityData("Paris", "FR", "Europe/Paris"),
-    new CityData("Rome", "IT", "Europe/Rome"),
-    new CityData("Moscow", "RU", "Europe/Moscow"),
-    new CityData("Casablanca", "MA", "Africa/Casablanca"),
-    new CityData("Cairo", "EG", "Africa/Cairo"),
-    new CityData("Riyadh", "SA", "Asia/Riyadh")
+    new("New York", "US", "America/New_York"),
+    new("Redmond", "US", "America/Los_Angeles"),
+    new("Toronto", "CA", "America/Toronto"),
+    new("Mexico", "MX", "America/Mexico_City"),
+    new("Madrid", "ES", "Europe/Madrid"),
+    new("London", "UK", "Europe/London"),
+    new("Paris", "FR", "Europe/Paris"),
+    new("Rome", "IT", "Europe/Rome"),
+    new("Moscow", "RU", "Europe/Moscow"),
+    new("Casablanca", "MA", "Africa/Casablanca"),
+    new("Cairo", "EG", "Africa/Cairo"),
+    new("Riyadh", "SA", "Asia/Riyadh")
 };
 
 Console.WriteLine($"Hello Matrix World!");
@@ -85,7 +85,7 @@ Task.Run(() =>
 
 ConsoleKeyInfo cki;
 Console.WriteLine($"Press q to exit.");
-System.Interop.ThreadHelper.SetCurrentThreadHighPriority();
+Interop.ThreadHelper.SetCurrentThreadHighPriority();
 
 do
 {
@@ -208,6 +208,7 @@ void Demo3(RGBLedMatrix matrix)
             zones[i] = TimeZoneInfo.FindSystemTimeZoneById(citiesData[i].ZoneId);
         }
 
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
         using (WebClient client = new WebClient())
         {
             BdfFont font = BdfFont.Load(@"fonts/6x12.bdf");
@@ -302,6 +303,7 @@ void Demo3(RGBLedMatrix matrix)
                 cityIndex = (cityIndex + 1) % citiesData.Length;
             }
         }
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
     }
     catch (Exception e)
     {
@@ -316,7 +318,9 @@ unsafe void Demo4(RGBLedMatrix matrix)
     byte blue = 0x15;
     matrix.Fill(0, 0, blue);
 
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
     using WebClient client = new WebClient();
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
     int lastMinute = -1;
     string temperature = string.Empty;
 
@@ -650,17 +654,4 @@ void ScrollText(
     }
 }
 
-internal struct CityData
-{
-    public CityData(string city, string countryCode, string zoneId)
-    {
-        City = city;
-        CountryCode = countryCode;
-        ZoneId = zoneId;
-
-    }
-
-    public string City { get; }
-    public string CountryCode { get; }
-    public string ZoneId { get; }
-}
+internal record CityData(string City, string CountryCode, string ZoneId);

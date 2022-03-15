@@ -38,17 +38,25 @@ namespace Iot.Device.BoardLed
         /// If you want to operate the LED, you need to remove the trigger, which is to set its trigger to none.
         /// Use <see cref="EnumerateTriggers()"/> to get all triggers.
         /// </remarks>
-        public string Trigger { get => GetTrigger(); set => SetTrigger(value); }
+        public string Trigger
+        {
+            get => GetTrigger();
+            set => SetTrigger(value);
+        }
 
         /// <summary>
         /// The current brightness of the LED.
         /// </summary>
-        public int Brightness { get => GetBrightness(); set => SetBrightness(value); }
+        public int Brightness
+        {
+            get => GetBrightness();
+            set => SetBrightness(value);
+        }
 
         /// <summary>
         /// The max brightness of the LED.
         /// </summary>
-        public int MaxBrightness { get => GetMaxBrightness(); }
+        public int MaxBrightness => GetMaxBrightness();
 
         /// <summary>
         /// Creates a new instance of the BoardLed.
@@ -58,7 +66,7 @@ namespace Iot.Device.BoardLed
         {
             Name = name;
             Initialize();
-#if NETCOREAPP2_1 || NETCOREAPP3_1
+#if !NET5_0_OR_GREATER
             if (_brightnessReader is null ||
                 _brightnessWriter is null ||
                 _maxBrightnessReader is null ||
@@ -68,6 +76,20 @@ namespace Iot.Device.BoardLed
                 throw new Exception($"{nameof(BoardLed)} incorrectly configured");
             }
 #endif
+        }
+
+        /// <summary>
+        /// Get all BoardLed instances of on-board LEDs.
+        /// </summary>
+        /// <returns>BoardLed instances.</returns>
+        public static IEnumerable<BoardLed> EnumerateLeds()
+        {
+            IEnumerable<DirectoryInfo> infos = Directory.GetDirectories(DefaultDevicePath)
+                .Select(x => new DirectoryInfo(x));
+
+            // Make sure it's a real LED
+            return infos.Where(x => x.EnumerateFiles().Select(f => f.Name).Contains("brightness"))
+                .Select(x => new BoardLed(x.Name));
         }
 
         /// <summary>
@@ -83,18 +105,60 @@ namespace Iot.Device.BoardLed
                 .Split(' ');
         }
 
-        /// <summary>
-        /// Get all BoardLed instances of on-board LEDs.
-        /// </summary>
-        /// <returns>BoardLed instances.</returns>
-        public static IEnumerable<BoardLed> EnumerateLeds()
+        private int GetBrightness()
         {
-            IEnumerable<DirectoryInfo> infos = Directory.GetDirectories(DefaultDevicePath)
-                .Select(x => new DirectoryInfo(x));
+            _brightnessReader.BaseStream.Position = 0;
+            return int.Parse(_brightnessReader.ReadToEnd());
+        }
 
-            // Make sure it's a real LED
-            return infos.Where(x => x.EnumerateFiles().Select(f => f.Name).Contains("brightness"))
-                .Select(x => new BoardLed(x.Name));
+        private int GetMaxBrightness()
+        {
+            _maxBrightnessReader.BaseStream.Position = 0;
+            return int.Parse(_maxBrightnessReader.ReadToEnd());
+        }
+
+        private void SetBrightness(int value)
+        {
+            value = MathExtensions.Clamp(value, 0, 255);
+
+            _brightnessWriter.BaseStream.SetLength(0);
+            _brightnessWriter.Write(value);
+            _brightnessWriter.Flush();
+        }
+
+        private string GetTrigger()
+        {
+            _triggerReader.BaseStream.Position = 0;
+            return Regex.Match(_triggerReader.ReadToEnd(), @"(?<=\[)(.*)(?=\])").Value;
+        }
+
+        private void SetTrigger(string name)
+        {
+            IEnumerable<string> triggers = EnumerateTriggers();
+
+            if (!triggers.Contains(name))
+            {
+                throw new Exception($"System does not contain a trigger called {name}.");
+            }
+
+            _triggerWriter.BaseStream.SetLength(0);
+            _triggerWriter.Write(name);
+            _triggerWriter.Flush();
+        }
+
+#if NET5_0_OR_GREATER
+        [MemberNotNull(nameof(_brightnessReader), nameof(_brightnessWriter), nameof(_triggerReader), nameof(_triggerWriter), nameof(_maxBrightnessReader))]
+#endif
+        private void Initialize()
+        {
+            FileStream brightnessStream = File.Open($"{DefaultDevicePath}/{Name}/brightness", FileMode.Open);
+            _brightnessReader = new StreamReader(stream: brightnessStream, encoding: Encoding.ASCII, detectEncodingFromByteOrderMarks: false, bufferSize: 4, leaveOpen: true);
+            _brightnessWriter = new StreamWriter(stream: brightnessStream, encoding: Encoding.ASCII, bufferSize: 4, leaveOpen: false);
+
+            FileStream triggerStream = File.Open($"{DefaultDevicePath}/{Name}/trigger", FileMode.Open);
+            _triggerReader = new StreamReader(stream: triggerStream, encoding: Encoding.ASCII, detectEncodingFromByteOrderMarks: false, bufferSize: 512, leaveOpen: true);
+            _triggerWriter = new StreamWriter(stream: triggerStream, encoding: Encoding.ASCII, bufferSize: 512, leaveOpen: false);
+            _maxBrightnessReader = new StreamReader(File.Open($"{DefaultDevicePath}/{Name}/max_brightness", FileMode.Open, FileAccess.Read));
         }
 
         /// <summary>
@@ -113,68 +177,6 @@ namespace Iot.Device.BoardLed
             _triggerReader = null!;
             _triggerWriter = null!;
             _maxBrightnessReader = null!;
-        }
-
-        private int GetBrightness()
-        {
-            _brightnessReader.BaseStream.Position = 0;
-
-            return int.Parse(_brightnessReader.ReadToEnd());
-        }
-
-        private int GetMaxBrightness()
-        {
-            _maxBrightnessReader.BaseStream.Position = 0;
-
-            return int.Parse(_maxBrightnessReader.ReadToEnd());
-        }
-
-        private void SetBrightness(int value)
-        {
-            value = Math.Clamp(value, 0, 255);
-
-            _brightnessWriter.BaseStream.SetLength(0);
-
-            _brightnessWriter.Write(value);
-            _brightnessWriter.Flush();
-        }
-
-        private string GetTrigger()
-        {
-            _triggerReader.BaseStream.Position = 0;
-
-            return Regex.Match(_triggerReader.ReadToEnd(), @"(?<=\[)(.*)(?=\])").Value;
-        }
-
-        private void SetTrigger(string name)
-        {
-            IEnumerable<string> triggers = EnumerateTriggers();
-
-            if (!triggers.Contains(name))
-            {
-                throw new ArgumentException($"System does not contain a trigger called {name}.");
-            }
-
-            _triggerWriter.BaseStream.SetLength(0);
-
-            _triggerWriter.Write(name);
-            _triggerWriter.Flush();
-        }
-
-#if !NETCOREAPP2_1 && !NETCOREAPP3_1
-        [MemberNotNull(nameof(_brightnessReader), nameof(_brightnessWriter), nameof(_triggerReader), nameof(_triggerWriter), nameof(_maxBrightnessReader))]
-#endif
-        private void Initialize()
-        {
-            FileStream brightnessStream = File.Open($"{DefaultDevicePath}/{Name}/brightness", FileMode.Open);
-            _brightnessReader = new StreamReader(stream: brightnessStream, encoding: Encoding.ASCII, detectEncodingFromByteOrderMarks: false, bufferSize: 4, leaveOpen: true);
-            _brightnessWriter = new StreamWriter(stream: brightnessStream, encoding: Encoding.ASCII, bufferSize: 4, leaveOpen: false);
-
-            FileStream triggerStream = File.Open($"{DefaultDevicePath}/{Name}/trigger", FileMode.Open);
-            _triggerReader = new StreamReader(stream: triggerStream, encoding: Encoding.ASCII, detectEncodingFromByteOrderMarks: false, bufferSize: 512, leaveOpen: true);
-            _triggerWriter = new StreamWriter(stream: triggerStream, encoding: Encoding.ASCII, bufferSize: 512, leaveOpen: false);
-
-            _maxBrightnessReader = new StreamReader(File.Open($"{DefaultDevicePath}/{Name}/max_brightness", FileMode.Open, FileAccess.Read));
         }
     }
 }

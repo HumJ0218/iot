@@ -1,6 +1,7 @@
 # Credit Card - Credit Card
 
 This CreditCard class allows to read thru a standard Near Field Communication (NFC) or Smart Card (PC/SC) reader. Be aware that to read the data stored in the card, you need a compatible reader:
+
 - An ISO 14443-4 Type B for NFC. Keep in mind as well that the antenna and the gain of your NFC reader need to be strong enough to read all kind of cards. Most of the popular PN532 NFC readers that you can find online does not allow to read all kind of card due to this issue
 - A smart card reader compatible to read secured card
 
@@ -8,7 +9,17 @@ Your credit card needs to be compatible with wireless payments for NFC reading. 
 
 You will need a reader with an implementation of a WriteRead function from the class CardWriteRead. You will find an example with the PN532 below.
 
-This class has been tested with various American Express, Visa and Mastercard, mainly from Europe. 
+This class has been tested with various American Express, Visa and Mastercard, mainly from Europe.
+
+## Documentation
+
+Some resources to understand how to communicate with a Credit Card and how to get the data out of it:
+
+- [The EMV tutorial](https://www.openscdp.org/scripts/tutorial/emv/index.html) from the OpenSCDP web site
+- [A good list of EMV & NFC Tags](https://www.eftlab.co.uk/knowledge-base/145-emv-nfc-tags/) from EFTLab
+- [A complete list of APDU response](https://www.eftlab.co.uk/knowledge-base/complete-list-of-apdu-responses/) from EFTLab
+- [A simple TLV parser](https://www.emvlab.org/tlvutils/) from emvlab.org
+- [Book with all the contact card specifications](https://www.emvco.com/emv-technologies/contact/) and [contactless](https://www.emvco.com/emv-technologies/contactless/) from EMVCo. Note that those are the official specifications. Main book used for this decoder is the contactless EMV 4.3 book 3.
 
 ## Usage
 
@@ -27,20 +38,20 @@ static void ReadCreditCard(Pn532 pn532)
     while ((!Console.KeyAvailable))
     {
         retData = pn532.AutoPoll(5, 300, new PollingType[] { PollingType.Passive106kbpsISO144443_4B });
-        if (retData != null)
+        if (retData is object)
             if (retData.Length >= 3)
                 break;
         // Give time to PN532 to process
         Thread.Sleep(200);
     }
 
-    if (retData == null)
+    if (retData is null)
         return;
 
     // Check how many cards and the type
     Console.WriteLine($"Num tags: {retData[0]}, Type: {(PollingType)retData[1]}");
     var decrypted = pn532.TryDecodeData106kbpsTypeB(retData.AsSpan().Slice(3));
-    if (decrypted != null)
+    if (decrypted is object)
     {
         Console.WriteLine($"{decrypted.TargetNumber}, Serial: {BitConverter.ToString(decrypted.NfcId)}, App Data: {BitConverter.ToString(decrypted.ApplicationData)}, " +
             $"{decrypted.ApplicationType}, Bit Rates: {decrypted.BitRates}, CID {decrypted.CidSupported}, Command: {decrypted.Command}, FWT: {decrypted.FrameWaitingTime}, " +
@@ -51,9 +62,9 @@ static void ReadCreditCard(Pn532 pn532)
 
         Console.WriteLine("All Tags for the Credit Card:");
         DisplayTags(creditCard.Tags, 0);
-		// Display Log Entries
+        // Display Log Entries
         var format = Tag.SearchTag(creditCard.Tags, 0x9F4F).FirstOrDefault();
-        if (format != null)
+        if (format is object)
             DisplayLogEntries(creditCard.LogEntries, format.Tags);
     }
 }
@@ -139,17 +150,6 @@ The Credit Card stores data in Tags. Those Tags have a specific number and data.
 
 Note as well that a ```ToString()``` converter has been implemented. The function in the example above ```DisplayTags``` gives an example on how you can display all the Tags and their data.
 
-
 ## Limitations
 
 This Credit Card class allows you to gather all the public information present into your credit card. The class does not implement fully all what is necessary to initiate a payment. Nothing prevent it as all the primary elements are present but you'll need to implement the Authentication.
-
-## Resources
-
-Some resources to understand how to communicate with a Credit Card and how to get the data out of it:
-
-- [The EMV tutorial](https://www.openscdp.org/scripts/tutorial/emv/index.html) from the OpenSCDP web site
-- [A good list of EMV & NFC Tags](https://www.eftlab.co.uk/knowledge-base/145-emv-nfc-tags/) from EFTLab
-- [A complete list of APDU response](https://www.eftlab.co.uk/knowledge-base/complete-list-of-apdu-responses/) from EFTLab
-- [A simple TLV parser](https://www.emvlab.org/tlvutils/) from emvlab.org
-- [Book with all the contact card specifications](https://www.emvco.com/emv-technologies/contact/) and [contactless](https://www.emvco.com/emv-technologies/contactless/) from EMVCo. Note that those are the official specifications. Main book used for this decoder is the contactless EMV 4.3 book 3.

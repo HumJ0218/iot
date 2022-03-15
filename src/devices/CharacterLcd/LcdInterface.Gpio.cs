@@ -62,10 +62,10 @@ namespace Iot.Device.CharacterLcd
                 }
                 else if (dataPins.Length != 4)
                 {
-                    throw new ArgumentException($"The length of the array given to parameter {nameof(dataPins)} must be 4 or 8");
+                    throw new ArgumentException("The length of the array must be 4 or 8.", nameof(dataPins));
                 }
 
-                _shouldDispose = controller == null ? true : shouldDispose;
+                _shouldDispose = shouldDispose || controller is null;
                 _controller = controller ?? new GpioController(PinNumberingScheme.Logical);
 
                 Initialize();
@@ -145,10 +145,7 @@ namespace Iot.Device.CharacterLcd
 
             public override bool BacklightOn
             {
-                get
-                {
-                    return _backlight != -1 && _controller.Read(_backlight) == PinValue.High;
-                }
+                get => _backlight != -1 && _controller.Read(_backlight) == PinValue.High;
                 set
                 {
                     if (_backlight != -1)
@@ -180,6 +177,15 @@ namespace Iot.Device.CharacterLcd
             }
 
             public override void SendData(ReadOnlySpan<byte> values)
+            {
+                _controller.Write(_rsPin, PinValue.High);
+                foreach (byte value in values)
+                {
+                    SendByte(value);
+                }
+            }
+
+            public override void SendData(ReadOnlySpan<char> values)
             {
                 _controller.Write(_rsPin, PinValue.High);
                 foreach (byte value in values)

@@ -3,12 +3,14 @@
 
 using System;
 using System.Device.Gpio;
+using System.Device.Model;
 
 namespace Iot.Device.LiquidLevel
 {
     /// <summary>
-    /// Supports any single pin output digital liquid level switch which is configured
+    /// Digital liquid level switch
     /// </summary>
+    [Interface("Digital liquid level switch")]
     public class LiquidLevelSwitch : IDisposable
     {
         private readonly int _dataPin;
@@ -26,22 +28,20 @@ namespace Iot.Device.LiquidLevel
         public LiquidLevelSwitch(int dataPin, PinValue liquidPresentPinState, GpioController? gpioController = null, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical, bool shouldDispose = true)
         {
             _controller = gpioController ?? new GpioController(pinNumberingScheme);
+            _shouldDispose = shouldDispose || gpioController is null;
             _dataPin = dataPin;
             _liquidPresentPinState = liquidPresentPinState;
 
             _controller.OpenPin(_dataPin, PinMode.Input);
 
-            _shouldDispose = shouldDispose || gpioController == null;
         }
 
         /// <summary>
         /// Determines whether liquid is present.
         /// </summary>
         /// <returns><code>true</code> if liquid is present, otherwise <code>false</code>.</returns>
-        public bool IsLiquidPresent()
-        {
-            return _controller.Read(_dataPin) == _liquidPresentPinState;
-        }
+        [Telemetry]
+        public bool IsLiquidPresent() => _controller.Read(_dataPin) == _liquidPresentPinState;
 
         /// <summary>
         /// Dispose Buzzer.

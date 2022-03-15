@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Device Bindings
 
 This directory is intended for device bindings, sensors, displays, human interface devices and anything else that requires software to control. We want to establish a rich set of quality .NET bindings to make it  straightforward to use .NET to connect devices together to produce weird and wonderful IoT applications.
@@ -17,10 +19,16 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 * [INA219 - Bidirectional Current/Power Monitor](Ina219/README.md)
 * [Mcp3428 - Analog to Digital Converter (I2C)](Mcp3428/README.md)
 * [MCP3xxx family of Analog to Digital Converters](Mcp3xxx/README.md)
+* [TLC1543 - 10-bit ADC with 11 input channels](Tlc1543/README.md)
+
+### Digital/Analog converters
+
+* [AD5328 - Digital to Analog Convertor](AD5328/README.md)
 
 ### Accelerometers
 
 * [ADXL345 - Accelerometer](Adxl345/README.md)
+* [ADXL357 - Accelerometer](Adxl357/README.md)
 * [BNO055 - inertial measurement unit](Bno055/README.md)
 * [LSM9DS1 - 3D accelerometer, gyroscope and magnetometer](Lsm9Ds1/README.md)
 * [MPU6500/MPU9250 - Gyroscope, Accelerometer, Temperature and Magnetometer (MPU9250 only)](Mpu9250/README.md)
@@ -30,20 +38,32 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 
 * [AGS01DB - MEMS VOC Gas Sensor](Ags01db/README.md)
 * [BMxx80 Device Family](Bmxx80/README.md)
+* [CCS811 Gas sensor](Ccs811/README.md)
+* [MH-Z19B CO<sub>2</sub> sensor](Mhz19b/README.md)
+* [SCD4x - CO<sub>2</sub>, humidity, temperature sensor](Scd4x/README.md)
+
+### Liquid sensors
+
+* [Digital liquid level switch](LiquidLevel/README.md)
+* [μFire ISE Probe - pH, ORP and temperature sensor](UFireIse/README.md)
 
 ### Light sensor
 
 * [Bh1745 - RGB Sensor](Bh1745/README.md)
 * [BH1750FVI - Ambient Light Sensor](Bh1750fvi/README.md)
 * [MAX44009 - Ambient Light Sensor](Max44009/README.md)
+* [SensorHub - Environmental sensor](SensorHub/README.md)
 * [TCS3472x Sensors](Tcs3472x/README.md)
+* [TSL256x - Illuminance sensor](Tsl256x/README.md)
 
 ### Barometers
 
 * [BMP180 - barometer, altitude and temperature sensor](Bmp180/README.md)
 * [BMxx80 Device Family](Bmxx80/README.md)
+* [SCD4x - CO<sub>2</sub>, humidity, temperature sensor](Scd4x/README.md)
 * [LPS25H - Piezoresistive pressure and thermometer sensor](Lps25h/README.md)
 * [Sense HAT](SenseHat/README.md)
+* [SensorHub - Environmental sensor](SensorHub/README.md)
 
 ### Altimeters
 
@@ -52,6 +72,7 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 
 ### Thermometers
 
+* [AHT10/15/20 - Temperature and humidity sensor modules](Ahtxx/README.md)
 * [BMP180 - barometer, altitude and temperature sensor](Bmp180/README.md)
 * [BMxx80 Device Family](Bmxx80/README.md)
 * [Cpu Temperature](CpuTemperature/README.md)
@@ -59,11 +80,25 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 * [HTS221 - Capacitive digital sensor for relative humidity and temperature](Hts221/README.md)
 * [LM75 - Digital Temperature Sensor](Lm75/README.md)
 * [LPS25H - Piezoresistive pressure and thermometer sensor](Lps25h/README.md)
+* [Max31856 - cold-junction compensated thermocouple to digital converter](Max31856/README.md)
+* [MAX31865 - Resistance Temperature Detector Amplifier](Max31865/README.md)
+* [MCP9808 - Digital Temperature Sensor](Mcp9808/README.md)
 * [MLX90614 - Infra Red Thermometer](Mlx90614/README.md)
 * [MPU6500/MPU9250 - Gyroscope, Accelerometer, Temperature and Magnetometer (MPU9250 only)](Mpu9250/README.md)
+* [OpenHardwareMonitor client library](HardwareMonitor/README.md)
 * [Sense HAT](SenseHat/README.md)
+* [SensorHub - Environmental sensor](SensorHub/README.md)
+* [SCD4x - CO<sub>2</sub>, humidity, temperature sensor](Scd4x/README.md)
 * [SHT3x - Temperature & Humidity Sensor](Sht3x/README.md)
+* [SHT4x - Temperature & Humidity Sensor](Sht4x/README.md)
+* [SHTC3 - Temperature & Humidity Sensor](Shtc3/README.md)
 * [Si7021 - Temperature & Humidity Sensor](Si7021/README.md)
+* [μFire ISE Probe - pH, ORP and temperature sensor](UFireIse/README.md)
+
+### Infrared sensors
+
+* [AMG88xx Infrared Array Sensor Family](Amg88xx/README.md)
+* [MLX90614 - Infra Red Thermometer](Mlx90614/README.md)
 
 ### Gyroscopes
 
@@ -85,6 +120,7 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 
 * [28BYJ-48 Stepper Motor 5V 4-Phase 5-Wire & ULN2003 Driver Board](Uln2003/README.md)
 * [DC Motor Controller](DCMotor/README.md)
+* [Explorer HAT Pro (Pimoroni)](ExplorerHat/README.md)
 * [MotorHat](MotorHat/README.md)
 * [Servo Motor](ServoMotor/README.md)
 
@@ -104,17 +140,16 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 * [MPU6500/MPU9250 - Gyroscope, Accelerometer, Temperature and Magnetometer (MPU9250 only)](Mpu9250/README.md)
 * [Sense HAT](SenseHat/README.md)
 
-### Liquid Crystal Displays
-
-* [Character LCD (Liquid Crystal Display)](CharacterLcd/README.md)
-
 ### Hygrometers
 
+* [AHT10/15/20 - Temperature and humidity sensor modules](Ahtxx/README.md)
 * [BMxx80 Device Family](Bmxx80/README.md)
 * [DHTxx - Digital-Output Relative Humidity & Temperature Sensor Module](Dhtxx/README.md)
 * [HTS221 - Capacitive digital sensor for relative humidity and temperature](Hts221/README.md)
 * [Sense HAT](SenseHat/README.md)
+* [SensorHub - Environmental sensor](SensorHub/README.md)
 * [SHT3x - Temperature & Humidity Sensor](Sht3x/README.md)
+* [SHTC3 - Temperature & Humidity Sensor](Shtc3/README.md)
 * [Si7021 - Temperature & Humidity Sensor](Si7021/README.md)
 
 ### Clocks
@@ -128,6 +163,7 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 ### Distance sensors
 
 * [HC-SR04 - Ultrasonic Ranging Module](Hcsr04/README.md)
+* [LidarLiteV3 - LIDAR Time of Flight Sensor](LidarLiteV3/README.md)
 * [VL53L0X - distance sensor](Vl53L0X/README.md)
 
 ### Passive InfraRed (motion) sensors
@@ -141,7 +177,10 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 ### Displays
 
 * [Adafruit Seesaw - extension board (ADC, PWM, GPIO expander)](Seesaw/README.md)
+* [APA102 - Double line transmission integrated control LED](Apa102/README.md)
+* [Character LCD (Liquid Crystal Display)](CharacterLcd/README.md)
 * [Max7219 (LED Matrix driver)](Max7219/README.md)
+* [PCD8544 - 48 × 84 pixels matrix LCD, famous Nokia 5110 screen](Pcd8544/README.md)
 * [RGBLedMatrix - RGB LED Matrix](RGBLedMatrix/README.md)
 * [Segment display driver (HT16K33)](Display/README.md)
 * [Sense HAT](SenseHat/README.md)
@@ -188,39 +227,66 @@ Our vision: the majority of .NET bindings are written completely in .NET languag
 ### LED drivers
 
 * [Adafruit Seesaw - extension board (ADC, PWM, GPIO expander)](Seesaw/README.md)
+* [APA102 - Double line transmission integrated control LED](Apa102/README.md)
+* [Explorer HAT Pro (Pimoroni)](ExplorerHat/README.md)
 * [On-board LED driver](BoardLed/README.md)
 * [Segment display driver (HT16K33)](Display/README.md)
 * [Ws28xx LED drivers](Ws28xx/README.md)
 
-### Shift registers
-
-* [ShiftRegister -- generic shift register](ShiftRegister/README.md)
-* [SN74HC595 -- 8 bit shift register](Sn75hc595/README.md)
-* [Mbi5027 -- 16-bit shift register](Mbi5027/README.md)
-
-
 ### RFID/NFC modules
 
+* [MFRC522 - RFID reader](Mfrc522/README.md)
+* [PN5180 - RFID and NFC reader](Pn5180/README.md)
 * [PN532 - RFID and NFC reader](Pn532/README.md)
 * [RFID shared elements](Card/README.md)
 
 ### Media libraries
 
+* [Buzzer - Piezo Buzzer Controller](Buzzer/README.md)
 * [Still image recording library](Media/README.md)
 
 ### USB devices
 
+* [SPI, GPIO and I2C drivers for Arduino with Firmata](Arduino/README.md)
 * [SPI, GPIO and I2C drivers for FT4222](Ft4222/README.md)
+* [STUSB4500 - Autonomous USB-C PD controller for Power Sinks / UFP](StUsb4500/README.md)
+
+### GPIO or bit operating devices
+
+* [Charlieplex Segment binding](Charlieplex/README.md)
+* [Digital liquid level switch](LiquidLevel/README.md)
+* [Generic shift register](ShiftRegister/README.md)
+* [GpioDriver for other boards](Gpio/README.md)
+* [Key Matrix](KeyMatrix/README.md)
+* [MBI5027 -- 16-bit shift register with error detection](Mbi5027/README.md)
+* [Quadrature Rotary Encoder](RotaryEncoder/README.md)
+* [SN74HC595 -- 8-bit shift register](Sn74hc595/README.md)
+
+### Multi-device or robot kit
+
+* [GoPiGo3](GoPiGo3/README.md)
+* [GrovePi](GrovePi/README.md)
+* [Sense HAT](SenseHat/README.md)
+* [SensorHub - Environmental sensor](SensorHub/README.md)
 
 ### Protocols providers/libraries
 
 * [1-wire](OneWire/README.md)
 * [Adafruit Seesaw - extension board (ADC, PWM, GPIO expander)](Seesaw/README.md)
+* [Board abstraction](Board/README.md)
+* [GpioDriver for other boards](Gpio/README.md)
 * [MotorHat](MotorHat/README.md)
 * [Pca9685 - I2C PWM Driver](Pca9685/README.md)
 * [Software PWM](SoftPwm/README.md)
 * [Software SPI](SoftwareSpi/README.md)
+* [SPI, GPIO and I2C drivers for Arduino with Firmata](Arduino/README.md)
 * [SPI, GPIO and I2C drivers for FT4222](Ft4222/README.md)
+* [System.Device.Model - attributes for device bindings](System.Device.Model/README.md)
+
+### Power monitors and related devices
+
+* [INA219 - Bidirectional Current/Power Monitor](Ina219/README.md)
+* [PiJuice - power supply for Raspberry Pi](PiJuice/README.md)
 
 </categorizedDevices>
 
@@ -237,7 +303,7 @@ Bindings must:
 * include a .NET Core project file for the main library.
 * include a descriptive README, with a fritzing diagram.
   * Best if you include the coverage of the binding. If you did not implement all features, mention what has been implemented and what is not. It is ok not to implement every features but it's important to know what is missing
-  * Refer to multiple manufacturer and add links where the binding can be found. Sometimes, they have different names depending on where you can find them while it's the same chipset used or compatible ones 
+  * Refer to multiple manufacturer and add links where the binding can be found. Sometimes, they have different names depending on where you can find them while it's the same chipset used or compatible ones
 * include a buildable sample (layout will be described below).
   * Best if you include a sample that covers usage of all available functions and properties
   * Best if you create mutliple paths to show what the sensor can do
@@ -246,7 +312,7 @@ Bindings must:
 
 Here is an example of a layout of a new Binding *Foo* from the top level of the repo:
 
-```
+```text
 iot/
   src/
     devices/
@@ -371,7 +437,7 @@ private int _pinToUse;
 
 public MyBinding(int pinToUse, GpioController controller = null, PinNumberingScheme pinNumberingScheme = PinNumberingScheme.Logical, bool shouldDispose = true)
 {
-  _shouldDispose = gpioController == null || shouldDispose;
+  _shouldDispose = gpioController is null || shouldDispose;
   _controller = gpioController ?? new GpioController(pinNumberingScheme);  
   _pinToUse = pinToUse;
   _controller.OpenPin(_pinToUse);

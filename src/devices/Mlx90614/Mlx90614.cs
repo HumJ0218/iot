@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Device.I2c;
+using System.Device.Model;
 using UnitsNet;
 
 namespace Iot.Device.Mlx90614
@@ -11,6 +12,7 @@ namespace Iot.Device.Mlx90614
     /// <summary>
     /// Infra Red Thermometer MLX90614
     /// </summary>
+    [Interface("Infra Red Thermometer MLX90614")]
     public sealed class Mlx90614 : IDisposable
     {
         private I2cDevice _i2cDevice;
@@ -26,19 +28,21 @@ namespace Iot.Device.Mlx90614
         /// <param name="i2cDevice">The I2C device used for communication.</param>
         public Mlx90614(I2cDevice i2cDevice)
         {
-            _i2cDevice = i2cDevice;
+            _i2cDevice = i2cDevice ?? throw new ArgumentNullException(nameof(i2cDevice));
         }
 
         /// <summary>
         /// Read ambient temperature from MLX90614
         /// </summary>
         /// <returns>Temperature</returns>
+        [Telemetry("AmbientTemperature")]
         public Temperature ReadAmbientTemperature() => Temperature.FromDegreesCelsius(ReadTemperature((byte)Register.MLX_AMBIENT_TEMP));
 
         /// <summary>
         /// Read surface temperature of object from MLX90614
         /// </summary>
         /// <returns>Temperature</returns>
+        [Telemetry("ObjectTemperature")]
         public Temperature ReadObjectTemperature() => Temperature.FromDegreesCelsius(ReadTemperature((byte)Register.MLX_OBJECT1_TEMP));
 
         /// <summary>

@@ -1,18 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFrameworks>net5.0;netcoreapp2.1</TargetFrameworks>
-    <EnableDefaultItems>false</EnableDefaultItems>    
+    <TargetFrameworks>$(DefaultBindingTfms)</TargetFrameworks>
+    <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="ServoMotor.cs" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)../SoftPwm/SoftwarePwm.csproj" />
-    <ProjectReference Include="$(MainLibraryPath)System.Device.Gpio.csproj" />
     <None Include="README.md" />
   </ItemGroup>
-
 </Project>

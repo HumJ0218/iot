@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Device.I2c;
+using System.Device.Model;
 using System.IO;
 using System.Numerics;
 using System.Threading;
@@ -13,6 +14,7 @@ namespace Iot.Device.Magnetometer
     /// <summary>
     /// AK8963 class implementing a magnetometer
     /// </summary>
+    [Interface("AK8963 class implementing a magnetometer")]
     public sealed class Ak8963 : IDisposable
     {
         private I2cDevice _i2cDevice;
@@ -20,12 +22,18 @@ namespace Iot.Device.Magnetometer
         private OutputBitMode _outputBitMode;
         private bool _selfTest = false;
         private Ak8963I2cBase _ak8963Interface;
-        private bool _autodispose = true;
+        private bool _shouldDispose = true;
 
         /// <summary>
         /// Default I2C address for the AK8963
         /// </summary>
         public const byte DefaultI2cAddress = 0x0C;
+
+        /// <summary>
+        /// Default timeout to use when timeout is not provided in the reading methods
+        /// </summary>
+        [Property]
+        public TimeSpan DefaultTimeout { get; set; } = TimeSpan.FromSeconds(1);
 
         /// <summary>
         /// Default constructor for an independent AK8963
@@ -40,18 +48,18 @@ namespace Iot.Device.Magnetometer
         /// Constructor to use if AK8963 is behind another element and need a special I2C protocol like
         /// when used with the MPU9250
         /// </summary>
-        /// <param name="i2CDevice">The I2C device</param>
+        /// <param name="i2cDevice">The I2C device</param>
         /// <param name="ak8963Interface">The specific interface to communicate with the AK8963</param>
-        /// <param name="autoDispose">True to dispose the I2C device when class is disposed</param>
-        public Ak8963(I2cDevice i2CDevice, Ak8963I2cBase ak8963Interface, bool autoDispose = true)
+        /// <param name="shouldDispose">True to dispose the I2C device when class is disposed</param>
+        public Ak8963(I2cDevice i2cDevice, Ak8963I2cBase ak8963Interface, bool shouldDispose = true)
         {
-            _i2cDevice = i2CDevice;
+            _i2cDevice = i2cDevice ?? throw new ArgumentNullException(nameof(i2cDevice));
             _ak8963Interface = ak8963Interface;
             // Initialize the default modes
             _measurementMode = MeasurementMode.PowerDown;
             _outputBitMode = OutputBitMode.Output14bit;
             _selfTest = false;
-            _autodispose = autoDispose;
+            _shouldDispose = shouldDispose;
             byte mode = (byte)((byte)_measurementMode | ((byte)_outputBitMode << 4));
             WriteRegister(Register.CNTL, mode);
             if (!IsVersionCorrect())
@@ -63,6 +71,7 @@ namespace Iot.Device.Magnetometer
         /// <summary>
         /// Reset the device
         /// </summary>
+        [Command]
         public void Reset()
         {
             WriteRegister(Register.RSV, 0x01);
@@ -77,19 +86,18 @@ namespace Iot.Device.Magnetometer
         /// Get the device information
         /// </summary>
         /// <returns>The device information</returns>
-        public byte GetDeviceInfo()
-        {
-            return ReadByte(Register.INFO);
-        }
+        public byte GetDeviceInfo() => ReadByte(Register.INFO);
 
         /// <summary>
         /// Get the magnetometer bias
         /// </summary>
+        [Property]
         public Vector3 MagnetometerBias { get; set; } = Vector3.Zero;
 
         /// <summary>
         /// Get the magnetometer hardware adjustment bias
         /// </summary>
+        [Property]
         public Vector3 MagnetometerAdjustment { get; set; } = Vector3.One;
 
         /// <summary>
@@ -194,13 +202,13 @@ namespace Iot.Device.Magnetometer
         /// <param name="waitForData">true to wait for new data</param>
         /// <param name="timeout">timeout for waiting the data, ignored if waitForData is false</param>
         /// <returns>The data from the magnetometer</returns>
-        public Vector3 ReadMagnetometerWithoutCorrection(bool waitForData, TimeSpan timeout)
+        public Vector3 ReadMagnetometerWithoutCorrection(bool waitForData = true, TimeSpan? timeout = null)
         {
             Span<byte> rawData = stackalloc byte[6];
             // Wait for a data to be present
             if (waitForData)
             {
-                DateTime dt = DateTime.Now.Add(timeout);
+                DateTime dt = DateTime.Now.Add(timeout ?? DefaultTimeout);
                 while (!HasDataToRead)
                 {
                     if (DateTime.Now > dt)
@@ -256,7 +264,8 @@ namespace Iot.Device.Magnetometer
         /// <param name="waitForData">true to wait for new data</param>
         /// <param name="timeout">timeout for waiting the data, ignored if waitForData is false</param>
         /// <returns>The data from the magnetometer</returns>
-        public Vector3 ReadMagnetometer(bool waitForData, TimeSpan timeout)
+        [Telemetry("Magnetometer")]
+        public Vector3 ReadMagnetometer(bool waitForData = true, TimeSpan? timeout = null)
         {
             var magn = ReadMagnetometerWithoutCorrection(waitForData, timeout);
             magn *= MagnetometerAdjustment;
@@ -277,10 +286,10 @@ namespace Iot.Device.Magnetometer
         /// Criteria | -200 =< HX =< 200 | -200 =< HY =< 200 | -3200 =< HZ =< -800
         /// ]]>
         /// </summary>
+        [Property]
         public bool MageneticFieldGeneratorEnabled
         {
             get => _selfTest;
-
             set
             {
                 byte mode = value ? (byte)0b01000_0000 : (byte)0b0000_0000;
@@ -292,10 +301,10 @@ namespace Iot.Device.Magnetometer
         /// <summary>
         /// Select the measurement mode
         /// </summary>
+        [Property]
         public MeasurementMode MeasurementMode
         {
             get => _measurementMode;
-
             set
             {
                 byte mode = (byte)((byte)value | ((byte)_outputBitMode << 4));
@@ -310,10 +319,10 @@ namespace Iot.Device.Magnetometer
         /// <summary>
         /// Select the output bit rate
         /// </summary>
+        [Property]
         public OutputBitMode OutputBitMode
         {
             get => _outputBitMode;
-
             set
             {
                 byte mode = (byte)(((byte)value << 4) | (byte)_measurementMode);
@@ -333,7 +342,7 @@ namespace Iot.Device.Magnetometer
         /// </summary>
         public void Dispose()
         {
-            if (_autodispose)
+            if (_shouldDispose)
             {
                 _i2cDevice?.Dispose();
                 _i2cDevice = null!;

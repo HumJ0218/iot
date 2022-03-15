@@ -6,8 +6,13 @@ using System.Device.Gpio;
 using System.Device.I2c;
 using System.Device.Spi;
 using System.Threading;
+using System.Collections.Generic;
 using Iot.Device.Bno055;
 using Iot.Device.Ft4222;
+using Iot.Device.Bmxx80;
+using Iot.Device.Bmxx80.PowerMode;
+using UnitsNet;
+using Iot.Device.FtCommon;
 
 Console.WriteLine("Hello I2C, SPI and GPIO FTFI! FT4222");
 Console.WriteLine("Select the test you want to run:");
@@ -18,9 +23,9 @@ Console.WriteLine(" 4 Run callback test event on GPIO2 on Failing and Rising");
 var key = Console.ReadKey();
 Console.WriteLine();
 
-var devices = FtCommon.GetDevices();
+List<FtDevice> devices = FtCommon.GetDevices();
 Console.WriteLine($"{devices.Count} FT4222 elements found");
-foreach (var device in devices)
+foreach (FtDevice device in devices)
 {
     Console.WriteLine($"Description: {device.Description}");
     Console.WriteLine($"Flags: {device.Flags}");
@@ -30,13 +35,22 @@ foreach (var device in devices)
     Console.WriteLine($"Device type: {device.Type}");
 }
 
-var (chip, dll) = FtCommon.GetVersions();
+if (devices.Count == 0)
+{
+    Console.WriteLine("No devices connected to run tests.");
+    return;
+}
+
+// Assuming the device 0 is the first FT4222
+Ft4222Device firstDevice = Ft4222Device.GetFt4222()[0];
+
+var (chip, dll) = Ft4222Common.GetVersions();
 Console.WriteLine($"Chip version: {chip}");
 Console.WriteLine($"Dll version: {dll}");
 
 if (key.KeyChar == '1')
 {
-    TestI2c();
+    TestI2c(firstDevice);
 }
 
 if (key.KeyChar == '2')
@@ -54,21 +68,26 @@ if (key.KeyChar == '4')
     TestEvents();
 }
 
-void TestI2c()
+void TestI2c(Ft4222Device device)
 {
-    using var ftI2c = new Ft4222I2c(new I2cConnectionSettings(0, Bno055Sensor.DefaultI2cAddress));
+    using I2cBus ftI2c = device.CreateOrGetI2cBus(0);
+    using Bno055Sensor bno055 = new(ftI2c.CreateDevice(Bno055Sensor.DefaultI2cAddress));
+    using Bme280 bme280 = new(ftI2c.CreateDevice(Bme280.DefaultI2cAddress));
+    bme280.SetPowerMode(Bmx280PowerMode.Normal);
 
-    var bno055Sensor = new Bno055Sensor(ftI2c);
+    Console.WriteLine($"Id: {bno055.Info.ChipId}, AccId: {bno055.Info.AcceleratorId}, GyroId: {bno055.Info.GyroscopeId}, MagId: {bno055.Info.MagnetometerId}");
+    Console.WriteLine($"Firmware version: {bno055.Info.FirmwareVersion}, Bootloader: {bno055.Info.BootloaderVersion}");
+    Console.WriteLine($"Temperature source: {bno055.TemperatureSource}, Operation mode: {bno055.OperationMode}, Units: {bno055.Units}");
 
-    Console.WriteLine($"Id: {bno055Sensor.Info.ChipId}, AccId: {bno055Sensor.Info.AcceleratorId}, GyroId: {bno055Sensor.Info.GyroscopeId}, MagId: {bno055Sensor.Info.MagnetometerId}");
-    Console.WriteLine($"Firmware version: {bno055Sensor.Info.FirmwareVersion}, Bootloader: {bno055Sensor.Info.BootloaderVersion}");
-    Console.WriteLine($"Temperature source: {bno055Sensor.TemperatureSource}, Operation mode: {bno055Sensor.OperationMode}, Units: {bno055Sensor.Units}");
-    Console.WriteLine($"Powermode: {bno055Sensor.PowerMode}");
+    if (bme280.TryReadTemperature(out Temperature temperature))
+    {
+        Console.WriteLine($"Temperature: {temperature}");
+    }
 }
 
 void TestSpi()
 {
-    using var ftSpi = new Ft4222Spi(new SpiConnectionSettings(0, 1) { ClockFrequency = 1_000_000, Mode = SpiMode.Mode0 });
+    using Ft4222Spi ftSpi = new(new SpiConnectionSettings(0, 1) { ClockFrequency = 1_000_000, Mode = SpiMode.Mode0 });
 
     while (!Console.KeyAvailable)
     {
@@ -82,7 +101,7 @@ void TestSpi()
 void TestGpio()
 {
     const int Gpio2 = 2;
-    using var gpioController = new GpioController(PinNumberingScheme.Board, new Ft4222Gpio());
+    using GpioController gpioController = new(PinNumberingScheme.Board, new Ft4222Gpio());
 
     // Opening GPIO2
     gpioController.OpenPin(Gpio2);
@@ -111,7 +130,7 @@ void TestGpio()
 void TestEvents()
 {
     const int Gpio2 = 2;
-    using var gpioController = new GpioController(PinNumberingScheme.Board, new Ft4222Gpio());
+    using GpioController gpioController = new(PinNumberingScheme.Board, new Ft4222Gpio());
 
     // Opening GPIO2
     gpioController.OpenPin(Gpio2);
@@ -124,7 +143,7 @@ void TestEvents()
     Console.WriteLine("Event setup, press a key to remove the failing event");
     while (!Console.KeyAvailable)
     {
-        var res = gpioController.WaitForEvent(Gpio2, PinEventTypes.Falling, new TimeSpan(0, 0, 0, 0, 50));
+        WaitForEventResult res = gpioController.WaitForEvent(Gpio2, PinEventTypes.Falling, new TimeSpan(0, 0, 0, 0, 50));
         if ((!res.TimedOut) && (res.EventTypes != PinEventTypes.None))
         {
             MyCallbackFailing(gpioController, new PinValueChangedEventArgs(res.EventTypes, Gpio2));
@@ -144,7 +163,7 @@ void TestEvents()
     Console.WriteLine("Event removed, press a key to remove all events and quit");
     while (!Console.KeyAvailable)
     {
-        var res = gpioController.WaitForEvent(Gpio2, PinEventTypes.Rising, new TimeSpan(0, 0, 0, 0, 50));
+        WaitForEventResult res = gpioController.WaitForEvent(Gpio2, PinEventTypes.Rising, new TimeSpan(0, 0, 0, 0, 50));
         if ((!res.TimedOut) && (res.EventTypes != PinEventTypes.None))
         {
             MyCallback(gpioController, new PinValueChangedEventArgs(res.EventTypes, Gpio2));
@@ -154,12 +173,8 @@ void TestEvents()
     gpioController.UnregisterCallbackForPinValueChangedEvent(Gpio2, MyCallback);
 }
 
-void MyCallback(object sender, PinValueChangedEventArgs pinValueChangedEventArgs)
-{
+void MyCallback(object sender, PinValueChangedEventArgs pinValueChangedEventArgs) =>
     Console.WriteLine($"Event on GPIO {pinValueChangedEventArgs.PinNumber}, event type: {pinValueChangedEventArgs.ChangeType}");
-}
 
-void MyCallbackFailing(object sender, PinValueChangedEventArgs pinValueChangedEventArgs)
-{
+void MyCallbackFailing(object sender, PinValueChangedEventArgs pinValueChangedEventArgs) =>
     Console.WriteLine($"Event on GPIO {pinValueChangedEventArgs.PinNumber}, event type: {pinValueChangedEventArgs.ChangeType}");
-}

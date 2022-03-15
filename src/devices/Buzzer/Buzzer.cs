@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Device.Model;
 using System.Device.Pwm;
 using System.Device.Pwm.Drivers;
 using System.Threading;
@@ -9,8 +10,9 @@ using System.Threading;
 namespace Iot.Device.Buzzer
 {
     /// <summary>
-    /// Simple buzzer binding. Supports buzzers with ground, vcc and signal pins as well as buzzers with only ground and vcc pins.
+    /// Simple buzzer.
     /// </summary>
+    [Interface("Simple buzzer")]
     public class Buzzer : IDisposable
     {
         private PwmChannel _pwmChannel;
@@ -38,15 +40,13 @@ namespace Iot.Device.Buzzer
         /// Create Buzzer class instance with output on specified pin with specified channel using passed PWM controller.
         /// </summary>
         /// <param name="pwmChannel">The PWM controller to use during work.</param>
-        public Buzzer(PwmChannel pwmChannel)
-        {
-            _pwmChannel = pwmChannel;
-        }
+        public Buzzer(PwmChannel pwmChannel) => _pwmChannel = pwmChannel;
 
         /// <summary>
         /// Set new or overwrite previously set frequency and start playing the sound.
         /// </summary>
         /// <param name="frequency">Tone frequency in Hertz.</param>
+        [Command]
         public void StartPlaying(double frequency)
         {
             _pwmChannel.Frequency = (int)frequency;
@@ -56,20 +56,19 @@ namespace Iot.Device.Buzzer
         /// <summary>
         /// Stop playing tone.
         /// </summary>
-        public void StopPlaying()
-        {
-            _pwmChannel.Stop();
-        }
+        [Command]
+        public void StopPlaying() => _pwmChannel.Stop();
 
         /// <summary>
         /// Play tone of specific frequency for specified duration.
         /// </summary>
         /// <param name="frequency">Tone frequency in Hertz.</param>
-        /// <param name="duraton">Playing duration in millisecons.</param>
-        public void PlayTone(double frequency, int duraton)
+        /// <param name="duration">Playing duration in millisecons.</param>
+        [Command]
+        public void PlayTone(double frequency, int duration)
         {
             StartPlaying(frequency);
-            Thread.Sleep(duraton);
+            Thread.Sleep(duration);
             StopPlaying();
         }
 

@@ -16,7 +16,7 @@ namespace Iot.Device.Ssd1351
         /// <param name="bm">The bitmap to be sent to the display controller note that only Pixel Format Format32bppArgb is supported.</param>
         public void SendBitmap(Bitmap bm)
         {
-            SendBitmap(bm, new Point(0, 0), new Rectangle(0, 0, ScreenWidthPx, ScreenWidthPx));
+            SendBitmap(bm, new Point(0, 0), new Rectangle(0, 0, ScreenWidthPx, ScreenHeightPx));
         }
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Iot.Device.Ssd1351
 
             if (bm.PixelFormat != PixelFormat.Format32bppArgb)
             {
-                throw new ArgumentException($"Pixel format {bm.PixelFormat.ToString()} not supported.", nameof(bm.PixelFormat));
+                throw new ArgumentException(nameof(bm), $"Pixel format {bm.PixelFormat.ToString()} not supported.");
             }
 
             // get the pixel data and send it to the display
@@ -70,7 +70,7 @@ namespace Iot.Device.Ssd1351
 
             if (bm.PixelFormat != PixelFormat.Format32bppArgb)
             {
-                throw new ArgumentException($"Pixel format {bm.PixelFormat.ToString()} not supported.", nameof(bm.PixelFormat));
+                throw new ArgumentException(nameof(bm), $"Pixel format {bm.PixelFormat.ToString()} not supported.");
             }
 
             // allocate the working arrays.

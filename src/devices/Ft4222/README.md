@@ -2,11 +2,13 @@
 
 This project support SPI, GPIO and I2C into a normal Windows 64 bits or Windows 32 bits environment thru FT4222 chipset. MacOS and Linux 64 bits can be added as well.
 
-## Device family
+## Documentation
 
 This device supports multiple SPI as well as GPIO and I2C. It is a [FT4222](https://www.ftdichip.com/Products/ICs/FT4222H.html) from FTDI Chip.
 
-You can find boards implementing this chip like on [bitWizard](http://bitwizard.nl/shop/FT4222h-Breakout-Board?search=ft4222). This is the board which has been used to develop this project. The pins are described [here](http://bitwizard.nl/wiki/FT4222h). Note that for I2C there is no pull up implemented. 
+You can find boards implementing this chip like on [bitWizard](http://bitwizard.nl/shop/FT4222h-Breakout-Board?search=ft4222). This is the board which has been used to develop this project. The pins are described [here](http://bitwizard.nl/wiki/FT4222h). Note that for I2C there is no pull up implemented.
+
+[FTDI](https://www.ftdichip.com/) has multiple chip that may look the same. You will find the implementation of 2 of those chip, FT4222 and [FT232H](../Ft232H/README.md).
 
 ## Windows Requirements
 
@@ -17,13 +19,13 @@ The version used to build this project is 1.4.2 and you can download it directly
 
 You will need to unzip the file and go to ```LibFT4222-v1.4.2\imports\LibFT4222\lib\amd64```, copy ```LibFT4222-64.dll``` to ```LibFT4222.dll``` into your path or in the same directory as the executable you are launching.
 
-Alternatively, you can register your dll globally. Copy ```LibFT4222-64.dll``` to ```LibFT4222.dll``` and then run from the directory where your ```LibFT4222.dll``` is located the following command in administrator mode: ```regsvr32.exe LibFT4222.dll```
+Alternatively, you can register your dll globally by adding its location to the PATH.
 
 ### Running it on a Windows 32 bit version
 
 You will need to unzip the file and go to ```LibFT4222-v1.4.2\imports\LibFT4222\lib\i386```, copy ```LibFT4222.dll``` to your path or in the same directory as the executable you are launching.
 
-Alternatively, you can register your dll globally. Run from the directory where your ```LibFT4222.dll``` is located the following command in administrator mode: ```regsvr32.exe LibFT4222.dll```
+Alternatively, you can register your dll globally by adding its location to the PATH.
 
 ## Linux Requirements
 
@@ -33,11 +35,12 @@ Alternately, you can copy your platform library into the same directory of your 
 
 ## Mac OS Requirement
 
-For Mac OS, you'll need to download both the ```libft4222.dylib``` and the ```libftd2xx.dylib```. You can find the latest version of ```libft4222.dylib``` [here](https://www.ftdichip.com/Products/ICs/FT4222H.html), direct link on a known minimal working version [here](https://www.ftdichip.com/Support/SoftwareExamples/LibFT4222-mac-v1.4.4.14.zip). You can find the latest version of ```libftd2xx.dylib``` [here]https://www.ftdichip.com/Drivers/D2XX.htm.
+For Mac OS, you'll need to download both the ```libft4222.dylib``` and the ```libftd2xx.dylib```. You can find the latest version of ```libft4222.dylib``` [here](https://www.ftdichip.com/Products/ICs/FT4222H.html), direct link on a known minimal working version [here](https://www.ftdichip.com/Support/SoftwareExamples/LibFT4222-mac-v1.4.4.14.zip). You can find the latest version of ```libftd2xx.dylib``` [here]<https://www.ftdichip.com/Drivers/D2XX.htm>.
 
 First install ```libftd2xx.dylib``` by follwing the instructions. To install ```libft4222.dylib``` you will need to follow the following steps. they are similar to the one installing ```libftd2xx.dylib```:
 
 From the path where you'll find the libft4222.x.x.x.x.dylib like for example: libfT4222.1.4.4.14.dylib
+
 ```bash
 sudo cp libfT4222.1.4.4.14.dylib /usr/local/lib/libfT4222.1.4.4.14.dylib
 sudo ln -sf /usr/local/lib/libfT4222.1.4.4.14.dylib /usr/local/lib/libfT4222.dylib
@@ -64,28 +67,31 @@ foreach (var device in devices)
     Console.WriteLine($"Device type: {device.Type}");
 }
 
-var (chip, dll) = FtCommon.GetVersions();
+var (chip, dll) = Ft4222Common.GetVersions();
 Console.WriteLine($"Chip version: {chip}");
 Console.WriteLine($"Dll version: {dll}");
 ```
 
 ### I2C
 
-```Ft4222I2c``` is the I2C driver which you can pass later to any device requiring I2C or directly use it to send I2C commands. The I2C implementation is fully compatible with ```System.Device.I2c.I2cDevice```.
+`FtDevice.CreateI2cBus()` is the I2C bus driver which allows you to create I2C needed for any device or use it directly to send I2C commands. The created I2C device is implementing ```System.Device.I2c.I2cDevice```.
 
-Form the ```I2cConnectionSettings``` class that you are passing, the ```BusId``` is the FTDI device index you want to use. 
-
-The example below shows how to create the I2C device and pass it to a BNO055 sensor. This sensor is the one which has been used to stress test the implementation.
+The example below shows how to create the I2C devices and pass them to a BNO055 sensor and BME280 sensors.
 
 ```csharp
-var winFtdiI2C = new Ft4222I2c(new I2cConnectionSettings(0, Bno055Sensor.DefaultI2cAddress));
+using I2cBus ftI2c = new Ft4222Device(FtCommon.GetDevices()[0]).CreateI2cBus();
+using Bno055Sensor bno055 = new(ftI2c.CreateDevice(Bno055Sensor.DefaultI2cAddress));
+using Bme280 bme280 = new(ftI2c.CreateDevice(Bme280.DefaultI2cAddress));
+bme280.SetPowerMode(Bmx280PowerMode.Normal);
 
-Bno055Sensor bno055Sensor = new Bno055Sensor(winFtdiI2C);
+Console.WriteLine($"Id: {bno055.Info.ChipId}, AccId: {bno055.Info.AcceleratorId}, GyroId: {bno055.Info.GyroscopeId}, MagId: {bno055.Info.MagnetometerId}");
+Console.WriteLine($"Firmware version: {bno055.Info.FirmwareVersion}, Bootloader: {bno055.Info.BootloaderVersion}");
+Console.WriteLine($"Temperature source: {bno055.TemperatureSource}, Operation mode: {bno055.OperationMode}, Units: {bno055.Units}");
 
-Console.WriteLine($"Id: {bno055Sensor.Info.ChipId}, AccId: {bno055Sensor.Info.AcceleratorId}, GyroId: {bno055Sensor.Info.GyroscopeId}, MagId: {bno055Sensor.Info.MagnetometerId}");
-Console.WriteLine($"Firmware version: {bno055Sensor.Info.FirmwareVersion}, Bootloader: {bno055Sensor.Info.BootloaderVersion}");
-Console.WriteLine($"Temperature source: {bno055Sensor.TemperatureSource}, Operation mode: {bno055Sensor.OperationMode}, Units: {bno055Sensor.Units}");
-Console.WriteLine($"Powermode: {bno055Sensor.PowerMode}");
+if (bme280.TryReadTemperature(out Temperature temperature))
+{
+    Console.WriteLine($"Temperature: {temperature}");
+}
 ```
 
 ### SPI
@@ -148,7 +154,7 @@ The example below shows how to blink a led on GPIO2 and then read the value. It'
 
 4 FTDI modes are available and offer different interfaces. This is setup by the DCNF0 and DCNF1 pins. Those pins need to be set before the board is powered. You need to reset the power of the board if you make changes to the modes for them to be taking into consideration. You can see how to select the modes for the [BitWizard implementation here](http://bitwizard.nl/wiki/FT4222h).
 
-The table below whose the modes and the interface available. 
+The table below whose the modes and the interface available.
 
 |Functions|Mode 0|Mode 1|Mode 2|Mode 3|
 |---|---|---|---|---|
@@ -158,7 +164,6 @@ The table below whose the modes and the interface available.
 Note that for example in mode 0, you can open I2C and GPIO at the same time. In this case, for example, you'll have only GPIO2 and GPIO3 available. GPIO0 and GPIO1 will be used by I2C. You can as well open GPIO and SPI at the same time. In this case, you'll get the 4 GPIO available.
 
 If you have multiple FTDI, you'll see more interfaces and you'll be able to select thru the index the one you'd like to initiate.
-
 
 ## Known limitations
 
@@ -170,7 +175,7 @@ For the moment this project supports only SPI and I2C in a Windows environement.
 - [x] I2C master support for Windows 64/32
 - [x] Basic GPIO support for Windows 64/32
 - [x] Advanced GPIO support for Windows 64/32
-- [X] SPI support for MacOS 
+- [X] SPI support for MacOS
 - [X] I2C support for MacOS
 - [X] GPIO support for MacOS
 - [x] SPI support for Linux 64

@@ -1,16 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFrameworks>$(DefaultBindingTfms)</TargetFrameworks>
     <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
-
- <ItemGroup>
+  <ItemGroup>
     <Compile Include="*.cs" />
   </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="$(MainLibraryPath)System.Device.Gpio.csproj" />
-    <PackageReference Include="System.Memory" Version="4.5.3" />
+    <ProjectReference Include="..\Board\Board.csproj" />
+    <PackageReference Include="System.Memory" Version="$(SystemMemoryPackageVersion)" />
   </ItemGroup>
+  <Import Project="..\FtCommon\FtCommon.projitems" Label="Shared" />
 </Project>

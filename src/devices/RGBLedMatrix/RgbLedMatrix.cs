@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Interop;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading;
@@ -234,10 +233,8 @@ namespace Iot.Device.LEDMatrix
         /// <param name="blue">blue color value</param>
         /// <param name="backBuffer">true if to draw on back buffer, false to draw on the forground buffer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Fill(byte red, byte green, byte blue, bool backBuffer = false)
-        {
+        public unsafe void Fill(byte red, byte green, byte blue, bool backBuffer = false) =>
             FillRectangle(0, 0, Width, Height, red, green, blue, backBuffer);
-        }
 
         /// <summary>
         /// Set color of specific pixel on the forground buffer display
@@ -248,10 +245,8 @@ namespace Iot.Device.LEDMatrix
         /// <param name="green">green color value</param>
         /// <param name="blue">blue color value</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetPixel(int column, int row, byte red, byte green, byte blue)
-        {
+        public void SetPixel(int column, int row, byte red, byte green, byte blue) =>
             SetPixel(column, row, red, green, blue, _colorsBuffer);
-        }
 
         /// <summary>
         /// Set color of specific pixel on the background buffer display
@@ -262,10 +257,8 @@ namespace Iot.Device.LEDMatrix
         /// <param name="green">green color value</param>
         /// <param name="blue">blue color value</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetBackBufferPixel(int column, int row, byte red, byte green, byte blue)
-        {
+        public void SetBackBufferPixel(int column, int row, byte red, byte green, byte blue) =>
             SetPixel(column, row, red, green, blue, _colorsBackBuffer);
-        }
 
         private void SetPixel(int column, int row, byte red, byte green, byte blue, byte[] colorsBuffer)
         {
@@ -350,7 +343,7 @@ namespace Iot.Device.LEDMatrix
         /// </summary>
         public void Dispose()
         {
-            if (_controller != null)
+            if (_controller is object)
             {
                 StopRendering();
 
@@ -629,7 +622,7 @@ namespace Iot.Device.LEDMatrix
         private void Render()
         {
             Thread.CurrentThread.Priority = ThreadPriority.Highest;
-            System.Interop.ThreadHelper.SetCurrentThreadHighPriority();
+            Interop.ThreadHelper.SetCurrentThreadHighPriority();
 
             _safeToDispose = false;
 

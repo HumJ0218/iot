@@ -7,11 +7,13 @@ using System.Device.Spi;
 using System.Threading;
 using Iot.Device.Multiplexing;
 
-using Sn74hc595 sr = new Sn74hc595(Sn74hc595PinMapping.Complete);
-// SpiConnectionSettings settings = new (0, 0);
+using Sn74hc595 sr = new(Sn74hc595PinMapping.Complete);
+
+// Uncomment this code to use SPI (and comment the line above)
+// SpiConnectionSettings settings = new(0, 0);
 // using var spiDevice = SpiDevice.Create(settings);
-// var sr = new Sn74hc595(spiDevice, Sn74hc595.PinMapping.Standard);
-CancellationTokenSource cancellationSource = new ();
+// using Sn74hc595 sr = new(spiDevice);
+CancellationTokenSource cancellationSource = new();
 Console.CancelKeyPress += (s, e) =>
 {
     e.Cancel = true;
@@ -20,7 +22,7 @@ Console.CancelKeyPress += (s, e) =>
 
 Console.WriteLine($"Driver for {nameof(Iot.Device.Multiplexing.Sn74hc595)}");
 Console.WriteLine($"Register bit length: {sr.BitLength}");
-var interfaceType = sr.UsesSpi ? "SPI" : "GPIO";
+string interfaceType = sr.UsesSpi ? "SPI" : "GPIO";
 Console.WriteLine($"Using {interfaceType}");
 
 if (!sr.UsesSpi)
@@ -156,7 +158,7 @@ void ShiftBytes(Sn74hc595 sr, int value)
 {
     if (sr.BitLength > 32)
     {
-        throw new ArgumentException($"{nameof(ShiftBytes)}: bit length must be  8-32.");
+        throw new Exception($"{nameof(ShiftBytes)}: bit length must be  8-32.");
     }
 
     for (int i = (sr.BitLength / 8) - 1; i > 0; i--)

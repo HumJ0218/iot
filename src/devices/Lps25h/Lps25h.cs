@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Device.I2c;
+using System.Device.Model;
 using System.Diagnostics;
 using UnitsNet;
 
@@ -12,6 +13,7 @@ namespace Iot.Device.Lps25h
     /// <summary>
     /// LPS25H - Piezoresistive pressure and thermometer sensor
     /// </summary>
+    [Interface("LPS25H - Piezoresistive pressure and thermometer sensor")]
     public class Lps25h : IDisposable
     {
         private const byte ReadMask = 0x80;
@@ -22,12 +24,7 @@ namespace Iot.Device.Lps25h
         /// </summary>
         public Lps25h(I2cDevice i2cDevice)
         {
-            if (i2cDevice == null)
-            {
-                throw new ArgumentNullException(nameof(i2cDevice));
-            }
-
-            _i2c = i2cDevice;
+            _i2c = i2cDevice ?? throw new ArgumentNullException(nameof(i2cDevice));
 
             // Highest resolution for both pressure and temperature sensor
             byte resolution = Read(Register.ResolutionMode);
@@ -48,23 +45,14 @@ namespace Iot.Device.Lps25h
         /// <summary>
         /// Temperature
         /// </summary>
+        [Telemetry]
         public Temperature Temperature => Temperature.FromDegreesCelsius(42.5f + ReadInt16(Register.Temperature) / 480f);
 
         /// <summary>
         /// Pressure
         /// </summary>
+        [Telemetry]
         public Pressure Pressure => Pressure.FromHectopascals(ReadInt24(Register.Pressure) / 4096.0);
-
-        private void WriteByte(Register register, byte data)
-        {
-            Span<byte> buff = stackalloc byte[2]
-            {
-                (byte)register,
-                data
-            };
-
-            _i2c.Write(buff);
-        }
 
         private static int ReadInt24LittleEndian(ReadOnlySpan<byte> buff)
         {
@@ -80,6 +68,17 @@ namespace Iot.Device.Lps25h
             };
 
             return BinaryPrimitives.ReadInt32LittleEndian(b);
+        }
+
+        private void WriteByte(Register register, byte data)
+        {
+            Span<byte> buff = stackalloc byte[2]
+            {
+                (byte)register,
+                data
+            };
+
+            _i2c.Write(buff);
         }
 
         private int ReadInt24(Register register)
