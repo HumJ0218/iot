@@ -18,7 +18,7 @@ LS027B7DH01 | 2.7"  | 400x240    | 20  | 5V (5.5V max) | 2MHz
 
 Due to the capacity limitation of the SPI output buffer, a buffer overflow exception may occur when update the screen with a high pixel count (eg. LS027B7DH01 with Raspberry Pi).
 
-To avoid this problem, you should limit the amount of lines and split one update into multiple updates.
+To avoid this problem, you should limit the amount of lines and split one update into multiple updates or enlarge SPI output buffer.
 
 # Datasheet
 
