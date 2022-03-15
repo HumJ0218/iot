@@ -6,9 +6,9 @@ The LCD features simple 3-wire Serial I/F connectivity (SI, SCS, SCLK).
 
 Model       | Size  | Resolution | FPS | VDD           | SPI
 ------------|-------|------------|-----|---------------|-------
-LS013B7DH03 | 1.28" | 128¡Á128    | 65  | 3V (3.3V max) | 1.1MHz
-LS013B7DH05 | 1.26" | 144¡Á168    | 60  | 3V (3.3V max) | 1.1MHz
-LS027B7DH01 | 2.7"  | 400¡Á240    | 20  | 5V (5.5V max) | 2MHz
+LS013B7DH03 | 1.28" | 128Ã—128    | 65  | 3V (3.3V max) | 1.1MHz
+LS013B7DH05 | 1.26" | 144Ã—168    | 60  | 3V (3.3V max) | 1.1MHz
+LS027B7DH01 | 2.7"  | 400Ã—240    | 20  | 5V (5.5V max) | 2MHz
 
 * LS027B7DH01 can also use 3V power source while recommended value is 5V.
 
