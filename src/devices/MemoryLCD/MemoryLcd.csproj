@@ -1,16 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>$(DefaultBindingTfms)</TargetFrameworks>
     <EnableDefaultItems>false</EnableDefaultItems>
+    <RootNamespace>Iot.Device.MemoryLcd</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="$(MainLibraryPath)System.Device.Gpio.csproj" />
-    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
     <Compile Include="*.cs" />
-    <Compile Include="Extends\*.cs" />
-    <Compile Include="..\Common\System\Device\DelayHelper.cs" Link="DelayHelper.cs" />
   </ItemGroup>
 
 </Project>

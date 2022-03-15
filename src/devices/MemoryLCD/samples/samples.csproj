@@ -3,24 +3,23 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Iot.Device.MemoryLcd.Sample</RootNamespace>
     <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MemoryLcd.csproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
     <Compile Include="*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="images\dotnet-bot.bmp">
+    <None Update="dotnet-bot.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="images\github-dotnet-iot-black.bmp">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="images\shapes.bmp">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
 
 </Project>
