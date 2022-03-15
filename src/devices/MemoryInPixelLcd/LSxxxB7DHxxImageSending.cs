@@ -5,7 +5,7 @@ using System;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace Iot.Device.MemoryLcd
+namespace Iot.Device.MemoryInPixelLcd
 {
     /// <summary>
     /// Extend methods for LSxxxB7DHxx

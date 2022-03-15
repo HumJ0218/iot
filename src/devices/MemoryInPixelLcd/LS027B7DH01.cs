@@ -4,7 +4,7 @@
 using System.Device.Gpio;
 using System.Device.Spi;
 
-namespace Iot.Device.MemoryLcd
+namespace Iot.Device.MemoryInPixelLcd
 {
     /// <summary>
     /// Memory LCD model LS027B7DH01

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(DefaultBindingTfms)</TargetFrameworks>
     <EnableDefaultItems>false</EnableDefaultItems>
-    <RootNamespace>Iot.Device.MemoryLcd</RootNamespace>
+    <RootNamespace>Iot.Device.MemoryInPixelLcd</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

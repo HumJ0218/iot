@@ -3,12 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>Iot.Device.MemoryLcd.Sample</RootNamespace>
+    <RootNamespace>Iot.Device.MemoryInPixelLcd.Sample</RootNamespace>
     <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MemoryLcd.csproj" />
+    <ProjectReference Include="..\MemoryInPixelLcd.csproj" />
   </ItemGroup>
 
 

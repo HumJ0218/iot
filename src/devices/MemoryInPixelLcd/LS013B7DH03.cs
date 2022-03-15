@@ -4,15 +4,15 @@
 using System.Device.Gpio;
 using System.Device.Spi;
 
-namespace Iot.Device.MemoryLcd
+namespace Iot.Device.MemoryInPixelLcd
 {
     /// <summary>
-    /// Memory LCD model LS013B7DH05
+    /// Memory LCD model LS013B7DH03
     /// </summary>
-    public class LS013B7DH05 : LSxxxB7DHxx
+    public class LS013B7DH03 : LSxxxB7DHxx
     {
         /// <summary>
-        /// Create a <see cref="LS013B7DH05"/> device
+        /// Create a <see cref="LS013B7DH03"/> device
         /// </summary>
         /// <param name="spi">SPI controller<br/><b>ChipSelectLineActiveState</b> must be <b>HIGH</b> or use <paramref name="gpio"/> and <paramref name="chipSelect"/>. See Datasheet 6-3</param>
         /// <param name="gpio">GPIO controller</param>
@@ -20,15 +20,15 @@ namespace Iot.Device.MemoryLcd
         /// <param name="chipSelect">Chip select signal<br/>-1 when using SPI chipSelect line</param>
         /// <param name="display">Display ON/OFF signal</param>
         /// <param name="externalCom">External COM inversion signal input</param>
-        public LS013B7DH05(SpiDevice spi, GpioController? gpio = null, bool shouldDispose = true, int chipSelect = -1, int display = -1, int externalCom = -1)
+        public LS013B7DH03(SpiDevice spi, GpioController? gpio = null, bool shouldDispose = true, int chipSelect = -1, int display = -1, int externalCom = -1)
             : base(spi, gpio, shouldDispose, chipSelect, display, externalCom)
         {
         }
 
         /// <inheritdoc/>
-        public override int PixelWidth { get; } = 144;
+        public override int PixelWidth { get; } = 128;
 
         /// <inheritdoc/>
-        public override int PixelHeight { get; } = 168;
+        public override int PixelHeight { get; } = 128;
     }
 }

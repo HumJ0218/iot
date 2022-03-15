@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Iot.Device.MemoryLcd
+namespace Iot.Device.MemoryInPixelLcd
 {
     /// <summary>
     /// Bytes for Mode selection poriod

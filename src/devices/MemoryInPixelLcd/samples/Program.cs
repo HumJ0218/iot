@@ -4,7 +4,7 @@
 using System;
 using System.Device.Gpio;
 using System.Device.Spi;
-using Iot.Device.MemoryLcd;
+using Iot.Device.MemoryInPixelLcd;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 

@@ -7,7 +7,7 @@ using System.Device.Gpio;
 using System.Device.Spi;
 using System.Linq;
 
-namespace Iot.Device.MemoryLcd
+namespace Iot.Device.MemoryInPixelLcd
 {
     /// <summary>
     /// Memory LCD
