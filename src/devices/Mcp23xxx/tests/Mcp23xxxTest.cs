@@ -185,6 +185,7 @@ namespace Iot.Device.Mcp23xxx.Tests
         {
             private Dictionary<int, PinValue> _pinValues = new Dictionary<int, PinValue>();
             private ConcurrentDictionary<int, PinMode> _pinModes = new ConcurrentDictionary<int, PinMode>();
+            private PinChangeEventHandler? _callback;
 
             protected override int PinCount => 10;
 
@@ -213,6 +214,8 @@ namespace Iot.Device.Mcp23xxx.Tests
 
                 return PinValue.Low;
             }
+
+            protected override void Toggle(int pinNumber) => Write(pinNumber, !Read(pinNumber));
 
             public void Read(Span<PinValuePair> pinValuePairs)
             {
@@ -245,9 +248,20 @@ namespace Iot.Device.Mcp23xxx.Tests
 
             protected override WaitForEventResult WaitForEvent(int pinNumber, PinEventTypes eventTypes, CancellationToken cancellationToken) => throw new NotImplementedException();
 
-            protected override void AddCallbackForPinValueChangedEvent(int pinNumber, PinEventTypes eventTypes, PinChangeEventHandler callback) => throw new NotImplementedException();
+            protected override void AddCallbackForPinValueChangedEvent(int pinNumber, PinEventTypes eventTypes, PinChangeEventHandler callback)
+            {
+                _callback = callback; // Keep it simple for this test class
+            }
 
-            protected override void RemoveCallbackForPinValueChangedEvent(int pinNumber, PinChangeEventHandler callback) => throw new NotImplementedException();
+            protected override void RemoveCallbackForPinValueChangedEvent(int pinNumber, PinChangeEventHandler callback)
+            {
+                _callback = null;
+            }
+
+            public void FireEvent(PinValueChangedEventArgs e)
+            {
+                _callback?.Invoke(this, e);
+            }
         }
     }
 }

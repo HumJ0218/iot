@@ -138,6 +138,38 @@ namespace Iot.Device.Seesaw
 
             /// <summary>Touch channel offset</summary>
             TouchChannelOffset = 0x10,
+
+            // encoder functions
+
+            /// <summary>Status</summary>
+            EncoderStatus = 0x00,
+
+            /// <summary>Enable encoder interrupt</summary>
+            EncoderIntenset = 0x10,
+
+            /// <summary>Clear encoder interrupt</summary>
+            EncoderIntenclr = 0x20,
+
+            /// <summary>Encoder position</summary>
+            EncoderPosition = 0x30,
+
+            /// <summary>Encoder position delta</summary>
+            EncoderDelta = 0x40,
+
+            /// <summary>Pin number (PORTA) that is used for the NeoPixel output</summary>
+            NeopixelPin = 0x01,
+
+            /// <summary>The protocol speed. 0x00 = 400khz, 0x01 = 800khz (default)</summary>
+            NeopixelSpeed = 0x02,
+
+            /// <summary>The number of bytes currently used for the pixel array</summary>
+            NeopixelBufferLength = 0x03,
+
+            /// <summary>The data buffer. The first 2 bytes are the start address, and the data to write follows. Data should be written in blocks of maximum size 30 bytes at a time.</summary>
+            NeopixelBuffer = 0x04,
+
+            /// <summary>SHOW command, will cause the output to update. There's no arguments/data after the command</summary>
+            NeopixelShow = 0x05
         }
     }
 }

@@ -1,170 +1,86 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/package-validation/diagnostic-ids -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <!-- All of the bellow suppresions are because we renamed the bindings that had "IoT" as a namespace to instead be "Iot" -->
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Channel</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Iot.Device.Axp192.BatteryStatus.Overwinered</Target>
     <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Gain</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Iot.Device.Axp192.Gpio0Behavior.MnosLeakOpenOutput</Target>
     <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.IntegrationTime</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Iot.Device.Axp192.PowerStatus.VbuxExists</Target>
     <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.InterruptControl</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Iot.Device.Axp192.Axp192.SetGPIO0(Iot.Device.Axp192.Gpio0Behavior,System.Byte)</Target>
     <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.InterruptPersistence</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Iot.Device.Axp192.Axp192.SetLDO2Output(System.Byte)</Target>
     <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.PackageType</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Iot.Device.Axp192.Axp192.SetLDO3Output(System.Byte)</Target>
     <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Tsl256x</Target>
-    <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
-    <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Pn532.ErrorCode</Target>
-    <Left>lib/net6.0/Iot.Device.Bindings.dll</Left>
-    <Right>lib/net6.0/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Channel</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Gain</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.IntegrationTime</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.InterruptControl</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.InterruptPersistence</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.PackageType</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Tsl256x</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Pn532.ErrorCode</Target>
-    <Left>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netcoreapp3.1/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Channel</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Iot.Device.Axp192.BatteryStatus.Overwinered</Target>
     <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Gain</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Iot.Device.Axp192.Gpio0Behavior.MnosLeakOpenOutput</Target>
     <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.IntegrationTime</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:Iot.Device.Axp192.PowerStatus.VbuxExists</Target>
     <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.InterruptControl</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Iot.Device.Axp192.Axp192.SetGPIO0(Iot.Device.Axp192.Gpio0Behavior,System.Byte)</Target>
     <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.InterruptPersistence</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Iot.Device.Axp192.Axp192.SetLDO2Output(System.Byte)</Target>
     <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.PackageType</Target>
-    <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Tsl256x.Tsl256x</Target>
-    <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
-    <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:IoT.Device.Pn532.ErrorCode</Target>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Iot.Device.Axp192.Axp192.SetLDO3Output(System.Byte)</Target>
     <Left>lib/netstandard2.0/Iot.Device.Bindings.dll</Left>
     <Right>lib/netstandard2.0/Iot.Device.Bindings.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
